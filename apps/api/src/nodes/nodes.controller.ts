@@ -56,6 +56,7 @@ export class NodesController {
   }
 
   @Post(':code/move')
+  @HttpCode(200)
   @Permissions('nodes:write')
   @ApiOperation({
     summary:
@@ -87,6 +88,7 @@ export class NodesController {
   }
 
   @Post(':code/deactivate')
+  @HttpCode(200)
   @Permissions('nodes:write')
   @ApiOperation({ summary: 'Soft-delete del subárbol completo (deleted_at)' })
   deactivate(

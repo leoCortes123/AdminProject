@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import helmet from 'helmet';
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -9,6 +10,8 @@ import { Logger as PinoNestLogger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { getEnv } from './config/env';
 import { auth } from './iam/auth';
+
+const authLogger = new Logger('AuthHandler');
 
 /**
  * Construye y cablea la aplicación NestJS (helmet → better-auth crudo →
@@ -29,10 +32,21 @@ export async function createNestApp(): Promise<NestExpressApplication> {
   app.use(helmet());
 
   // Handler crudo de better-auth MONTADO ANTES del body-parser de Nest.
+  // Si better-auth falla, responder 500 (jamás dejar la petición colgada).
   const authHandler = toNodeHandler(auth);
   app.use((req: Request, res: Response, next: NextFunction) => {
     if (req.path.startsWith('/api/auth')) {
-      void authHandler(req, res);
+      Promise.resolve()
+        .then(() => authHandler(req, res))
+        .catch((error: unknown) => {
+          authLogger.error(`auth handler falló: ${req.method} ${req.path}`, error instanceof Error ? error.stack : String(error));
+          if (!res.headersSent) {
+            res.writeHead(500, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ detail: 'auth handler error' }));
+          } else {
+            res.end();
+          }
+        });
       return;
     }
     next();

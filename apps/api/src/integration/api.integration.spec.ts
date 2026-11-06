@@ -4,17 +4,27 @@
  * (helmet → better-auth → guards → problem+json) vía Supertest.
  */
 import './test-env';
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { createNestApp } from '../bootstrap';
 
 let app: NestExpressApplication;
+let adminAgent: request.Agent;
+let outsiderAgent: request.Agent;
 
 beforeAll(async () => {
   app = await createNestApp();
   await app.init();
+  // supertest: pasar el SERVIDOR HTTP, no un factory — una función se
+  // interpreta como request listener y cuelga cada petición para siempre.
+  adminAgent = request.agent(app.getHttpServer());
+  outsiderAgent = request.agent(app.getHttpServer());
 }, 120_000);
+
+afterAll(async () => {
+  await app?.close();
+});
 
 /** PRNG determinista (mulberry32) — fuzz reproducible sin dependencias extra. */
 function mulberry32(seed: number) {
@@ -69,9 +79,6 @@ async function assertTreeInvariants(agent: request.Agent, slug: string): Promise
 }
 
 describe('DevCycle API (integración · PG efímero)', () => {
-  const adminAgent = request.agent(() => app.getHttpServer());
-  const outsiderAgent = request.agent(() => app.getHttpServer());
-
   it('GET /api/v1/health → { status: ok, db: up }', async () => {
     const res = await request(app.getHttpServer()).get('/api/v1/health');
     expect(res.status).toBe(200);
@@ -116,14 +123,14 @@ describe('DevCycle API (integración · PG efímero)', () => {
     // Crear MOD → PANT → COMP (anidados)
     const mod = await adminAgent
       .post('/api/v1/products/itest-alpha/nodes')
-      .send({ parentId: null, nodeTypeKey: 'modulo', code: 'MOD-T1', name: 'Módulo Itest' });
+      .send({ parentId: null, nodeTypeKey: 'modulo', code: 'MOD-1', name: 'Módulo Itest' });
     expect(mod.status).toBe(201);
     const pant = await adminAgent
       .post('/api/v1/products/itest-alpha/nodes')
       .send({
         parentId: mod.body.id,
         nodeTypeKey: 'pantalla',
-        code: 'PANT-T11',
+        code: 'PANT-11',
         name: 'Pantalla Itest',
       });
     expect(pant.status).toBe(201);
@@ -132,7 +139,7 @@ describe('DevCycle API (integración · PG efímero)', () => {
       .send({
         parentId: pant.body.id,
         nodeTypeKey: 'componente',
-        code: 'COMP-T11',
+        code: 'COMP-11',
         name: 'Componente Itest',
       });
     expect(comp.status).toBe(201);
@@ -140,38 +147,39 @@ describe('DevCycle API (integración · PG efímero)', () => {
     // Código duplicado → 409 node.code_conflict
     const dup = await adminAgent
       .post('/api/v1/products/itest-alpha/nodes')
-      .send({ parentId: null, nodeTypeKey: 'modulo', code: 'MOD-T1', name: 'Otra vez' });
+      .send({ parentId: null, nodeTypeKey: 'modulo', code: 'MOD-1', name: 'Otra vez' });
     expect(dup.status).toBe(409);
     expect(dup.body.code).toBe('node.code_conflict');
 
-    // Mover COMP-T11 a la raíz (posiciona y recomputa path)
+    // Mover COMP-11 a la raíz (posiciona y recomputa path)
     const move = await adminAgent
-      .post('/api/v1/products/itest-alpha/nodes/COMP-T11/move')
+      .post('/api/v1/products/itest-alpha/nodes/COMP-11/move')
       .send({ newParentId: null });
     expect(move.status).toBe(200);
-    expect(move.body.path).toBe('comp_t11');
+    expect(move.body.path).toBe('comp_11');
 
-    // Anti-ciclo: mover el módulo dentro de su propio hijo
+    // Anti-ciclo: mover el módulo dentro de su propio hijo (PANT-11 sigue
+    // siendo hijo de MOD-1; COMP-11 ya no — se movió a la raíz antes).
     const cycle = await adminAgent
-      .post('/api/v1/products/itest-alpha/nodes/MOD-T1/move')
-      .send({ newParentId: comp.body.id });
+      .post('/api/v1/products/itest-alpha/nodes/MOD-1/move')
+      .send({ newParentId: pant.body.id });
     expect(cycle.status).toBe(422);
     expect(cycle.body.code).toBe('node.move_into_descendant');
 
     // Duplicar el módulo (raíz junto a sí mismo) → códigos nuevos
-    const copy = await adminAgent.post('/api/v1/products/itest-alpha/nodes/MOD-T1/duplicate');
+    const copy = await adminAgent.post('/api/v1/products/itest-alpha/nodes/MOD-1/duplicate');
     expect(copy.status).toBe(201);
-    expect(copy.body.nodes).toEqual(['MOD-T2', 'PANT-T12']);
+    expect(copy.body.nodes).toEqual(['MOD-02', 'PANT-12']);
 
     await assertTreeInvariants(adminAgent, 'itest-alpha');
 
     // Desactivar el duplicado (subárbol completo) → fuera del listado
-    const off = await adminAgent.post('/api/v1/products/itest-alpha/nodes/MOD-T2/deactivate');
+    const off = await adminAgent.post('/api/v1/products/itest-alpha/nodes/MOD-02/deactivate');
     expect(off.status).toBe(200);
     expect(off.body.deactivated).toBe(2);
 
     const remaining = await fetchNodes(adminAgent, 'itest-alpha');
-    expect(remaining.map((n) => n.code)).not.toContain('MOD-T2');
+    expect(remaining.map((n) => n.code)).not.toContain('MOD-02');
     await assertTreeInvariants(adminAgent, 'itest-alpha');
   });
 

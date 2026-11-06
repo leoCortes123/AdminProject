@@ -95,3 +95,40 @@ jobs:
             -c "SELECT count(*) AS products FROM products" \
             -c "SELECT count(*) AS nodes FROM product_nodes" \
             -c "SELECT count(*) AS role_permissions FROM role_permissions"
+
+  integration-tests:
+    name: integración API + PG efímero (health · RBAC · árbol ltree · fuzz 300)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: devcycle
+          POSTGRES_PASSWORD: devcycle
+          POSTGRES_DB: devcycle
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U devcycle -d devcycle"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Build de paquetes
+        run: pnpm --filter @devcycle/shared build && pnpm --filter @devcycle/db build
+
+      # La BD devcycle_test se crea/migra/siembra sola (globalSetup) — no tocar el servicio.
+      - name: Integración API (supertest · PG efímero)
+        run: pnpm --filter @devcycle/api test:integration

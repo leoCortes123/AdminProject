@@ -32,12 +32,14 @@
   "devDependencies": {
     "@devcycle/config": "workspace:*",
     "@nestjs/testing": "^11.0.1",
+    "@swc/core": "^1.16.22",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.5",
     "@types/supertest": "^6.0.3",
     "supertest": "^7.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
+    "unplugin-swc": "^2.0.0",
     "vitest": "^2.1.8"
   }
 }
