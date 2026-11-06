@@ -1,0 +1,19 @@
+-- 0002_core.down.sql
+DROP TABLE IF EXISTS activity_log;
+DROP FUNCTION IF EXISTS forbid_mutation();
+DROP TABLE IF EXISTS state_transitions;
+DROP TABLE IF EXISTS workflow_states;
+DROP TABLE IF EXISTS document_types;
+DROP TABLE IF EXISTS product_nodes;
+DROP TABLE IF EXISTS node_types;
+DROP TABLE IF EXISTS product_members;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS user_roles;
+DROP TABLE IF EXISTS role_permissions;
+DROP TABLE IF EXISTS permissions;
+DROP TABLE IF EXISTS roles;
+DROP TABLE IF EXISTS verifications;
+DROP TABLE IF EXISTS accounts;
+DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS organizations;

@@ -1,0 +1,8 @@
+{
+  "extends": "@devcycle/config/tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "noEmit": true
+  },
+  "include": ["src"]
+}
