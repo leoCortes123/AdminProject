@@ -214,7 +214,14 @@ describe('DevCycle API (integración · PG efímero)', () => {
     expect(betaDenied.status).toBe(403);
   });
 
-  it('fuzz de 300 movimientos aleatorios — árbol siempre conexo, sin ciclos, paths consistentes', async () => {
+  it('fuzz de 1.000 movimientos aleatorios — árbol siempre conexo, sin ciclos, paths consistentes', async () => {
+    // Presupuesto del plan (07 §2 / 08 §2): 1.000 movimientos por ejecución.
+    // Ambas cifras son sobreescribibles para poder correr una pasada corta en
+    // local (`MOVE_FUZZ_OPS=100 pnpm test:integration`) sin cambiar la semántica.
+    const totalOps = Number(process.env.MOVE_FUZZ_OPS ?? 1000);
+    const checkEvery = Number(process.env.MOVE_FUZZ_CHECK_EVERY ?? 25);
+    expect(Number.isInteger(totalOps) && totalOps > 0).toBe(true);
+
     const rng = mulberry32(20261106);
     const pick = <T>(arr: T[]): T => arr[Math.floor(rng() * arr.length)]!;
 
@@ -230,7 +237,7 @@ describe('DevCycle API (integración · PG efímero)', () => {
       expect(res.status).toBe(201);
     }
 
-    for (let i = 0; i < 300; i++) {
+    for (let i = 0; i < totalOps; i++) {
       const nodes = await fetchNodes(adminAgent, 'itest-fuzz');
       const node = pick(nodes);
       const candidates = [null, ...nodes.filter((n) => n.id !== node.id).map((n) => n.id)];
@@ -238,10 +245,10 @@ describe('DevCycle API (integración · PG efímero)', () => {
         .post(`/api/v1/products/itest-fuzz/nodes/${node.code}/move`)
         .send({ newParentId: pick(candidates) });
       expect([200, 422]).toContain(res.status);
-      if (i % 25 === 24) {
+      if (i % checkEvery === checkEvery - 1) {
         await assertTreeInvariants(adminAgent, 'itest-fuzz');
       }
     }
     await assertTreeInvariants(adminAgent, 'itest-fuzz');
-  }, 170_000);
+  }, 900_000);
 });

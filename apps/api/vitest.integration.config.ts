@@ -22,7 +22,8 @@ export default defineConfig({
     globalSetup: './src/integration/global-setup.ts',
     include: ['src/**/*.integration.spec.ts'],
     testTimeout: 180_000,
-    hookTimeout: 180_000,
+    // El globalSetup migra+siembra desde cero; en frío puede pasar de 3 min.
+    hookTimeout: 600_000,
     pool: 'forks',
     // Sin paralelismo entre archivos para evitar carreras sobre la BD compartida.
     fileParallelism: false,

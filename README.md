@@ -20,7 +20,7 @@ Abre `http://localhost:3001/api/v1/docs`, registra el primer usuario en la app:
 
 ```
 apps/api         NestJS 11 — dominio, REST, OpenAPI, RBAC, better-auth
-apps/web         Next.js 15 (pendiente — Fase 1-T08)
+apps/web         Next.js 15 — Productos, Resumen, Arquitectura funcional, login, E2E
 packages/db      Esquema Drizzle, migraciones SQL (up/down), seeds
 packages/shared  Tipos/zod/errores RFC 9457/constantes (CJS)
 packages/config  tsconfig, eslint, prettier compartidos
@@ -30,14 +30,17 @@ muckup/          Mockup UX aprobado (intocable)
 
 ## Comandos
 
-| Comando                                      | Qué hace                                                                                |
-| -------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `pnpm demo`                                  | Levanta Postgres, migra y siembra datos demo (idempotente)                              |
-| `pnpm build` / `lint` / `typecheck` / `test` | Pipeline turbo de todo el workspace                                                     |
-| `pnpm test:integration` (en `apps/api`)      | Integración API+PG (health, RBAC, árbol ltree, fuzz 300)                                |
-| `pnpm e2e` (en `apps/web`)                   | E2E Playwright (requiere build con `API_INTERNAL_URL=http://localhost:3101 pnpm build`) |
-| `pnpm db:migrate` / `db:seed`                | Migraciones y catálogos (`packages/db`)                                                 |
-| `docker compose up -d postgres [minio]`      | Infra local (MinIO bajo perfil `storage`)                                               |
+| Comando                                 | Qué hace                                                                          |
+| --------------------------------------- | --------------------------------------------------------------------------------- |
+| `pnpm demo`                             | Levanta Postgres, migra y siembra datos demo (idempotente)                        |
+| `pnpm build`/`lint`/`typecheck`/`test`  | Pipeline turbo de todo el workspace                                               |
+| `pnpm format` / `format:check`          | Prettier (mockup y `prompt.md` fuera: `.prettierignore`)                          |
+| `pnpm test:integration` (`apps/api`)    | Integración API+PG (health · RBAC · ltree · fuzz 1.000 movimientos)               |
+| `pnpm e2e` (`apps/web`)                 | E2E Playwright: camino dorado + TTI < 1.5 s (build con `API_INTERNAL_URL=…:3101`) |
+| `pnpm db:migrate` / `db:seed`           | Migraciones y catálogos (`packages/db`)                                           |
+| `docker compose up -d postgres [minio]` | Infra local (MinIO bajo perfil `storage`)                                         |
+
+> Nota: `pnpm format` no toca `muckup/` (mockup aprobado, intocable) ni `prompt.md` — ver `.prettierignore`.
 
 ## Entorno
 

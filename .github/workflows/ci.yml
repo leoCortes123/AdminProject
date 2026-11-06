@@ -97,8 +97,10 @@ jobs:
             -c "SELECT count(*) AS role_permissions FROM role_permissions"
 
   integration-tests:
-    name: integración API + PG efímero (health · RBAC · árbol ltree · fuzz 300)
+    name: integración API + PG efímero (health · RBAC · árbol ltree · fuzz 1.000)
     runs-on: ubuntu-latest
+    # En frío: install + build (~2 min) + migrate/seed + 1.000 movimientos (~3 min).
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16-alpine

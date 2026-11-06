@@ -1,6 +1,6 @@
-# HANDOFF — DevCycle (AdminProject) · 2026-11-06 (4ª sesión)
+# HANDOFF — DevCycle (AdminProject) · 2026-11-06 (5ª sesión)
 
-> **Estado:** Fase 1 · Fundamentos — **≈85–90% completada**. Integración API+PG **verde (7/7)** y **E2E Playwright verde** (camino dorado completo). CI con 4 jobs (`build-test`, `db-migrations`, `integration-tests`, `e2e`). `lint`/`typecheck`/`test`/`build` verdes en el workspace.
+> **Estado:** Fase 1 · Fundamentos — **CERRADA (criterios cumplidos en local)**. Integración API+PG **verde (7/7, fuzz de 1.000 movimientos)** y **E2E Playwright verde** (camino dorado + presupuesto TTI). CI con 4 jobs (`build-test`, `db-migrations`, `integration-tests`, `e2e`). `lint`/`typecheck`/`test`/`build`/`format:check` verdes en el workspace.
 > **Servidores demo vivos:** web `:3000` (proxy → :3001), API `:3001`. BD `devcycle` con seed demo prístino en usuarios (0 usuarios hasta registrar el primero, que recibe `admin_global`).
 > **Entornos efímeros:** `devcycle_test` (integración API, la recrea su globalSetup) · `devcycle_e2e` (E2E, la recrea su globalSetup).
 
@@ -35,30 +35,41 @@ Suite: `src/integration/api.integration.spec.ts` — health · 401 problem+json 
 - **Trampas documentadas:** las rewrites de Next se hornean en `next build` (`.next/routes-manifest.json`) → el build E2E exige `API_INTERNAL_URL=http://localhost:3101`; **y** los RSC leen `API_INTERNAL_URL` en **runtime** (`lib/api.ts`, no horneada) → el `next start` del E2E la recibe también en env. Sin la runtime, las fetches SSR van a la demo :3001 → 401 → redirect /login (síntoma: heading "Productos" ausente).
 - `vitest.config.ts` en web: unitarios **solo** `src/**` (playwright no es vitest).
 
+### Cierre de Fase 1 — esta sesión
+
+- **Fuzz de 1.000 movimientos** (plan 07 §2 / 08 §2): `apps/api/src/integration/api.integration.spec.ts` — 1.000 ops deterministas (mulberry32) con invariantes cada 25 y timeout de 15 min; verde en 109 s. Parametrizable con `MOVE_FUZZ_OPS` / `MOVE_FUZZ_CHECK_EVERY`. `hookTimeout` de integración a 10 min (`vitest.integration.config.ts`) y `timeout-minutes: 20` en el job de CI.
+- **F1-T08 · TTI < 1.5 s**: `apps/web/e2e/perf.spec.ts` — login/registro vía API (idempotente respecto a `golden.spec.ts`), navegación a `/products` sobre `next start` de producción y aserción `domContentLoaded < 1500 ms` + contenido real visible. Medido: **≈ 91 ms**.
+- **Calidad de formato**: `pnpm format:check` ahora verde en todo el repo (antes 47 archivos con drift). `.prettierignore` excluye `muckup/` (mockup intocable), `prompt.md` y lockfiles/workspace.
+- README actualizado (web entregada, comandos, fuzz 1.000, format).
+
 ### Resto acumulado (Fase 1-T01…T12) — sin cambios esta sesión
 
 Monorepo+CI · packages/db (migraciones up/down reversibles, seed idempotente) · packages/shared (zod, RFC 9457) · packages/ui (Tree/DataTable/Tabs/… · 25 tests · cobertura 94,9%) · better-auth (sesiones PG, cookie HttpOnly, primer usuario admin_global) · RBAC (admin_global/admin_product/collaborator/viewer + permissions granulares + productGuard) · products CRUD + miembros · nodes CRUD + move/duplicate/deactivate (ltree, anti-ciclo, serializable) · apps/web (Productos con KPIs reales, Resumen, Arquitectura funcional read-only, paleta Ctrl+K, login/signup/logout) · demo seeds (kanora/verdana/nucleo).
 
 ## 2. Pendiente inmediato (en este orden)
 
-### A · CI verde en GitHub — **primer push real pendiente**
+### A · CI verde en GitHub
 
-Todo verde en local; falta el primer push y confirmar los 4 jobs en GitHub Actions (`build-test` · `db-migrations` · `integration-tests` · `e2e`). Riesgo bajo; revisar logs del job `e2e` (install de chromium-headless-shell con `--with-deps` usa sudo del runner — permitido en GH Actions).
+Remoto configurado: `https://github.com/leoCortes123/AdminProject.git` (5ª sesión, primer push). Falta confirmar los 4 jobs en GitHub Actions (`build-test` · `db-migrations` · `integration-tests` · `e2e`). Riesgo bajo; revisar logs del job `e2e` (install de chromium-headless-shell con `--with-deps` usa sudo del runner — permitido en GH Actions).
 
-### B · Criterios de aceptación de fase (§2 de 07-plan)
+### B · Criterios de aceptación de fase (§2 de 07-plan) — **todos cumplidos en local**
 
-1. ✅ login real · ✅ crear 2 productos aislados · ✅ árbol operativo (ltree íntegro, fuzz 300) · ✅ demo seed (`pnpm demo` en 5 min) · ✅ strict limpio · ✅ build/lint/typecheck/unit/integration/e2e escritos y verdes en local.
-2. Falta: **CI verde en GitHub** (ver A) · tokens/scopes (Fase 6a, fuera de scope) · time-to-interactive < 1.5 s en Productos (medir en demo formal; Next prod suele estar muy por debajo).
+1. ✅ login real · ✅ crear 2 productos aislados · ✅ árbol operativo (ltree íntegro, **fuzz 1.000** — `apps/api/src/integration`, ~110 s) · ✅ demo seed (`pnpm demo` en 5 min) · ✅ strict limpio · ✅ build/lint/typecheck/unit/integration/e2e verdes.
+2. ✅ **TTI < 1.5 s en Productos** — medido por `apps/web/e2e/perf.spec.ts` sobre el build de producción: **≈ 91 ms** (presupuesto 1.500 ms; el test falla si se supera).
+3. Tokens/scopes → Fase 6a, fuera de scope de Fase 1.
+4. ⏳ Solo queda **CI verde en GitHub** (ver A).
 
 ### C · Deuda menor conocida
 
-- `apps/web`: el context switcher (`AppShell`) no dispara `router.push` de forma fiable a mitad de carga (patrón igual que la paleta). Revisar con `useEffect` + `startTransition` si cuaja en demo.
+- `apps/web`: el context switcher (`AppShell`) quedó corregido (`useEffect` + `startTransition`, commit `3aee6b5`); validar visualmente en la demo.
 - KPIs de Productos no cubren "Tareas/Incidencias" (llegan en Fases 3–5) — etiquetados honestamente como Fase 1.
 - `Integrantes` lista membresías `product_members` explícitas; `admin_global` no aparece (acceso implícito) — correcto aunque confunda en demo.
 - API: rate-limit de better-auth bajo proxy sin IP (warning cosmético; configurar `advanced.ipAddress` si se pone tras proxy real).
 - Rewrites horneadas en build: **tras correr E2E local, reconstruir la web con env por defecto** (`pnpm --filter @devcycle/web build`) para que la demo proxye a :3001. (Esta sesión ya dejó la web reconstruida por defecto y :3000 vivo.)
 - pnpm en este PC: instalar con `CI=true pnpm --store-dir=/run/media/leonardo/Datos/.pnpm-store/v10 …`.
 - **Nunca** `pkill -f` con cadenas que aparezcan en la propia shell — PIDs en `/tmp/opencode/*.pid` o `ss -ltnp`.
+- `pnpm format` reescribía el mockup (intocable) y `prompt.md` → ahora `.prettierignore` los excluye; si se añade tooling nuevo, comprobar que no toque `muckup/`.
+- Fuzz de integración parametrizable: `MOVE_FUZZ_OPS=100 pnpm test:integration` para una pasada rápida en local (CI y por defecto: 1.000).
 
 ## 3. Estado de las BDs
 
@@ -93,4 +104,4 @@ cd ../web && API_INTERNAL_URL=http://localhost:3101 pnpm build && pnpm e2e   # �
 - Plan e implementación: `docs/planificacion/07-plan-implementacion.md` §2 (F1-T01…T12). Criterios de fase §2.
 - Estrategia de pruebas: `docs/planificacion/08-estrategia-pruebas.md` §3–4 (FND-U/I/E2E/SEC/MIG — todos implementados y verdes).
 - ADRs: `docs/adr/ADR-001..005`. Mockup (intocable): `muckup/`.
-- CI: `.github/workflows/ci.yml` (4 jobs). E2E: `apps/web/{playwright.config.ts,e2e/}`. Integración: `apps/api/src/integration/`.
+- CI: `.github/workflows/ci.yml` (4 jobs). E2E: `apps/web/{playwright.config.ts,e2e/}` (golden + perf). Integración: `apps/api/src/integration/`.
