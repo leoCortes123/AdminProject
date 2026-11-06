@@ -48,9 +48,18 @@ Monorepo+CI · packages/db (migraciones up/down reversibles, seed idempotente) �
 
 ## 2. Pendiente inmediato (en este orden)
 
-### A · CI verde en GitHub
+### A · CI verde en GitHub — ⚠️ bloqueado por la cuenta de GitHub (no por el código)
 
-Remoto configurado: `https://github.com/leoCortes123/AdminProject.git` (5ª sesión, primer push). Falta confirmar los 4 jobs en GitHub Actions (`build-test` · `db-migrations` · `integration-tests` · `e2e`). Riesgo bajo; revisar logs del job `e2e` (install de chromium-headless-shell con `--with-deps` usa sudo del runner — permitido en GH Actions).
+**Push hecho** (2026-11-06, run [42292587175](https://github.com/leoCortes123/AdminProject/actions/runs/42292587175)): los 4 jobs arrancan pero **ninguno se ejecuta** — GitHub responde _"The job was not started because your account is locked due to a billing issue"_. El repo es público, `allowed_actions: all` y el token tiene scopes `repo`+`workflow` (no es un problema del `ci.yml`).
+
+**Qué hacer (solo el dueño de la cuenta puede):**
+
+1. `https://github.com/settings/billing` — resolver el estado de facturación/pago pendiente (verificar método de pago y que la cuota de minutos esté disponible).
+2. `https://github.com/settings/billing/payment-history` — si aparece un pago fallido/retto, regularizarlo.
+3. Si es límite de minutos: para repos públicos los runners estándar son gratuitos, así que el bloqueo es de la cuenta, no de consumo.
+4. Tras desbloquear: `gh workflow run CI` (o un commit vacío) y confirmar los 4 jobs verdes.
+
+Todo lo que ejecuta la CI está verificado en local esta sesión: `lint` · `typecheck` · `test` · `build` · `format:check` · migraciones up/down + seed idempotente · integración 7/7 (fuzz 1.000) · E2E 2/2.
 
 ### B · Criterios de aceptación de fase (§2 de 07-plan) — **todos cumplidos en local**
 
