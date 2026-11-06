@@ -56,7 +56,8 @@ export const createNodeSchema = z.object({
     .regex(/^[A-Z][A-Z0-9_]{0,15}-[0-9]{1,6}$/, 'código tipo PANT-02'),
   name: z.string().trim().min(1).max(200),
   status: nodeStatusSchema.default('planned'),
-  ownerId: uuidSchema.nullish(),
+  // better-auth usa ids `text` (no uuid) para users — ver migración 0002 / schema.ts.
+  ownerId: z.string().min(1).max(128).nullish(),
 });
 export type CreateNodeInput = z.infer<typeof createNodeSchema>;
 
@@ -65,3 +66,17 @@ export const moveNodeSchema = z.object({
   position: z.number().int().min(0).optional(),
 });
 export type MoveNodeInput = z.infer<typeof moveNodeSchema>;
+
+/** Patch parcial de nodo (F1-T07). El código (`code`) es inmutable. */
+export const updateNodeSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200).optional(),
+    status: nodeStatusSchema.optional(),
+    // better-auth usa ids `text` (no uuid) — ver schema.ts. null = desasignar.
+    ownerId: z.string().min(1).max(128).nullish(),
+    position: z.number().int().min(0).optional(),
+  })
+  .refine((data) => Object.values(data).some((value) => value !== undefined), {
+    message: 'Al menos un campo debe ser actualizado',
+  });
+export type UpdateNodeInput = z.infer<typeof updateNodeSchema>;

@@ -21,7 +21,9 @@ export default tseslint.config(
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
-      '@typescript-eslint/consistent-type-imports': 'warn',
+      // Desactivada: NestJS resuelve dependencias por la clase en runtime
+      // (emitDecoratorMetadata); convertirlas a `import type` rompe el DI.
+      '@typescript-eslint/consistent-type-imports': 'off',
       'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
     },
   },

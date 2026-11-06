@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+
+jobs:
+  build-test:
+    name: lint · typecheck · unit · build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        # lee `packageManager` de package.json (pnpm@10.34.5)
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+  db-migrations:
+    name: migraciones up/down + seed idempotente (PostgreSQL real)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: devcycle
+          POSTGRES_PASSWORD: devcycle
+          POSTGRES_DB: devcycle
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U devcycle -d devcycle"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://devcycle:devcycle@localhost:5432/devcycle
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Build de paquetes
+        run: pnpm --filter @devcycle/shared build && pnpm --filter @devcycle/db build
+
+      - name: Migrate up → down --all → up (reversibles)
+        run: |
+          pnpm --filter @devcycle/db migrate up
+          pnpm --filter @devcycle/db migrate down --all
+          pnpm --filter @devcycle/db migrate up
+          pnpm --filter @devcycle/db migrate status
+
+      - name: Seed demo dos veces (idempotente)
+        run: |
+          pnpm --filter @devcycle/db exec tsx src/seed.ts --demo
+          pnpm --filter @devcycle/db exec tsx src/seed.ts --demo
+
+      - name: Sanity check del catálogo seed
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+            -c "SELECT count(*) AS products FROM products" \
+            -c "SELECT count(*) AS nodes FROM product_nodes" \
+            -c "SELECT count(*) AS role_permissions FROM role_permissions"

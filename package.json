@@ -19,7 +19,7 @@
     "db:generate": "pnpm --filter @devcycle/db generate",
     "db:migrate": "pnpm --filter @devcycle/db migrate",
     "db:seed": "pnpm --filter @devcycle/db seed",
-    "demo": "docker compose up -d postgres && pnpm db:migrate && pnpm db:seed"
+    "demo": "docker compose up -d postgres && pnpm db:migrate && pnpm --filter @devcycle/db exec tsx src/seed.ts --demo && echo 'Demo listo. Siguiente: pnpm --filter @devcycle/api dev (API en :3001, docs en /api/v1/docs) y registra el primer usuario (sera admin_global).'"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
