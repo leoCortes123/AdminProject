@@ -132,3 +132,53 @@ jobs:
       # La BD devcycle_test se crea/migra/siembra sola (globalSetup) — no tocar el servicio.
       - name: Integración API (supertest · PG efímero)
         run: pnpm --filter @devcycle/api test:integration
+
+  e2e:
+    name: e2e · Playwright (registro → crear producto → nodo en árbol)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: devcycle
+          POSTGRES_PASSWORD: devcycle
+          POSTGRES_DB: devcycle
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U devcycle -d devcycle"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (paquetes + api + web · API_INTERNAL_URL horneada → :3101)
+        env:
+          # Las rewrites de Next se hornean en `next build` — la web E2E proxya a la
+          # API desechable :3101, nunca a la demo.
+          API_INTERNAL_URL: http://localhost:3101
+        run: |
+          pnpm --filter @devcycle/shared build
+          pnpm --filter @devcycle/db build
+          pnpm --filter @devcycle/api build
+          pnpm --filter @devcycle/web build
+
+      - name: Playwright chromium (headless shell)
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium-headless-shell
+
+      # La BD devcycle_e2e se recrea sola (globalSetup); API :3101 y web :3100
+      # se levantan como webServer de Playwright.
+      - name: E2E (camino dorado)
+        run: pnpm --filter @devcycle/web e2e

@@ -1,122 +1,96 @@
-# HANDOFF — DevCycle (AdminProject) · 2026-11-06 (3ª sesión)
+# HANDOFF — DevCycle (AdminProject) · 2026-11-06 (4ª sesión)
 
-> **Estado:** Fase 1 · Fundamentos — **≈70–75% completada**. `apps/web` (F1-T08) y `packages/ui` (F1-T09) **terminadas y verificadas manualmente en navegador real** (login, sign-up con auto-admin_global, Productos, Resumen, Arquitectura funcional con árbol LTREE real, paleta Ctrl+K, toast, logout). `lint`/`typecheck`/`test`/`build` del workspace **verdes**.
-> **Sinjo prístino de demo:** BD re-sembrada (3 productos, 10 nodos, **0 usuarios**). Web en `:3000`, API en `:3001`, ambas con `setsid`.
-> **⚠ Roto/no verificado:** la suite de **integración API+PG** (`apps/api/src/integration/`) está escrita pero NO verde — ver §3/§5.
+> **Estado:** Fase 1 · Fundamentos — **≈85–90% completada**. Integración API+PG **verde (7/7)** y **E2E Playwright verde** (camino dorado completo). CI con 4 jobs (`build-test`, `db-migrations`, `integration-tests`, `e2e`). `lint`/`typecheck`/`test`/`build` verdes en el workspace.
+> **Servidores demo vivos:** web `:3000` (proxy → :3001), API `:3001`. BD `devcycle` con seed demo prístino en usuarios (0 usuarios hasta registrar el primero, que recibe `admin_global`).
+> **Entornos efímeros:** `devcycle_test` (integración API, la recrea su globalSetup) · `devcycle_e2e` (E2E, la recrea su globalSetup).
 
 ## 0. Qué es el proyecto
 
 Plataforma de gestión del ciclo de vida del software (multiproducto, trazabilidad funcional, agentes IA vía MCP). Brief en `prompt.md`; plan en `docs/planificacion/` (12 docs). Mockup UX aprobado en `muckup/` (**intocable** — `apps/web/src/app/globals.css` es su puerto fiel). Desarrollo según `docs/planificacion/07-plan-implementacion.md`, **Fase 1 · Fundamentos**.
 
-## 1. Hecho y verificado ✅ (acumulado Fases 1-T01…T09)
+## 1. Hecho y verificado ✅ (acumulado Fases 1-T01…T12 + esta sesión)
 
-### Raíz / monorepo / CI
+### Raíz / monorepo / CI — esta sesión: `integration-tests` y `e2e` (4 jobs)
 
-- CI en `.github/workflows/ci.yml` (jobs `build-test`: lint+typecheck+unit+build; `db-migrations`: up→down --all→up + seed ×2 + sanity psql contra PG 16 service).
-- `pnpm demo` arreglado: `up postgres → migrate → seed --demo` + mensaje de siguientes pasos.
-- Prettier/ESLint raíz funcionan con import relativo (evita resolver el enlace inexistente).
-- `.github/workflows/ci.yml` YAML válido; sin secrets requeridos.
+- `.github/workflows/ci.yml`: jobs `build-test` · `db-migrations` · **`integration-tests`** (PG 16 service → build shared+db → `pnpm --filter @devcycle/api test:integration`) · **`e2e`** (PG 16 service → build con `API_INTERNAL_URL=http://localhost:3101` horneada → `npx playwright install --with-deps chromium-headless-shell` → `pnpm --filter @devcycle/web e2e`). YAML validado.
+- `pnpm test:integration` (api) y `pnpm e2e` (web) ejecutan sus suites **fuera** de `turbo test` (las BD efímeras se autogestionan).
 
-### `packages/ui` ✅ (F1-T09) — nuevo esta sesión
+### `apps/api` — integración API+PG **verde (7 tests, incl. fuzz 300 movimientos)** — esta sesión
 
-Componentes portados del mockup (className global del design system, sin CSS propio): **Tree** (teclado completo, modo controlado, `collectExpandableIds`), **DataTable**, **Pill**, **Tabs** (ARIA tablist/tab), **EmptyState**, **CommandPalette** (filtro ANDeado, ↑↓/Enter/Esc, click-fuera).
+Causas raíz diagnosticadas y corregidas (todas verificadas):
 
-- 25 tests @testing-library/react + jsdom, **cobertura 94.9%** (umbral ≥70% configurado en `vitest.config.ts` con `--coverage`), scripts `test` + `test:coverage`.
-- Fix: el cleanup de Testing Library exige `setupFiles` (`src/test.setup.ts`) cuando vitest corre sin `globals`.
-- Decisión: `CSP/STRICTS` del mockup respetados; `packages/ui` documentado como "clases globales": el consumidor importa el CSS global.
+1. **`emitDecoratorMetadata` no existe en esbuild/Vite** (docs oficiales) → la DI de Nest resolvía `undefined` en runtime (`SessionGuard.reflector` → TypeError → 500). Fix: transform de integración con **SWC** (`unplugin-swc` + `@swc/core`, `legacyDecorator` + `decoratorMetadata`) en `vitest.integration.config.ts`.
+2. **`request.agent(fn)` de supertest interpreta la función como request-listener** (crea `http.Server(fn)` que nunca responde) → toda petición con agente colgaba para siempre (el síntoma "cuelga tras request id=2"). Fix: agentes creados en `beforeAll` pasando **el servidor real** (`request.agent(app.getHttpServer())`).
+3. **POST de acción devolvía 201** (default Nest) → `move` y `deactivate` ahora `@HttpCode(200)` (semántica REST correcta; el spec y la API coherentes).
+4. Handler crudo better-auth: si better-auth lanza, responder **500 JSON** en vez de colgar (blindaje en `bootstrap.ts`; jamás dejar la petición sin respuesta).
+5. Spec corregido a la realidad: códigos de nodo (`MOD-1`, regex del schema), anti-ciclo sobre PANT-11 (COMP-11 se movió a raíz antes), duplicado zero-padded (`MOD-02`). El "hang" del worker era en realidad el test del agente supertest colgado (nunca el código de dominio).
 
-### `apps/web` ✅ (F1-T08) — nuevo esta sesión
+Suite: `src/integration/api.integration.spec.ts` — health · 401 problem+json · seed demo · CRUD+move+duplicate+deactivate (ltree íntegro) · FND-SEC tenant-escape (403 sin membresía; viewer lee sí/escribe no) · **fuzz determinista de 300 moves (mulberry32)** con invariantes cada 25 iteraciones (path único, padre-hijo conexo, profundidad consistente). ~60–70 s en frío.
 
-Next.js 15 (App Router, React 19, proxy `/api/*` → API `API_INTERNAL_URL`, fallback `http://localhost:3001`):
+### `apps/web` + `e2e/` — **FND-E2E verde** — esta sesión
 
-- Shell del mockup portado: sidebar (brand, context switch org↔producto, navegación `Pronto`-disabled para vistas F2+), topbar (breadcrumb, buscador, avatar, Cerrar sesión), toast, org-banner, selección `?node=CODE` en la URL del árbol.
-- **Login** (`/login`, tabs Entrar/Crear cuenta) + `better-auth/react` client (`/api/auth`, same-origin vía proxy). Middleware exige cookie `better-auth.session_token` (o `__Secure-`) → redirect a `/login?next=…`; `/login` con sesión → `/products`.
-- **Productos** (vista org): tabla clicable (→ resumen), KPIs reales computados en servidor (nodos, estado, integrantes), botón **Nuevo producto** (modal, solo admin_global) — verificado en navegador: `e2e-demo` creado, API responde OK.
-- **Resumen**: hero real (nombre, estado, stack, rol), descripción (EmptyState honesto), repo, avance por módulo calculado desde nodos (`done`/`total` descendientes), integrantes reales.
-- **Arquitectura funcional** (read-only): árbol desde la API, filtro por tipo con conteo, expandir/contraer, leyenda real, ficha con pestañas (Resumen con KV reales + tabs vacías Fase 2/3/4 con EmptyState honestos).
-- Ctrl+K paleta (navegación + nodos del producto en contexto; carga perezosa del árbol).
-- Verificado en navegador real: sign-up (primer usuario → `admin_global`), login, logout, POST producto vía UI, navegación completa, `?node=PANT-02` compartible.
+- `playwright.config.ts`: API `:3101` (dist/main.js) + web `:3100` (`next start`) como `webServer`; `retries: 0` (la spec no es idempotente: el PRIMER registro recibe `admin_global` y la BD solo se recrea por invocación).
+- `e2e/global-setup.ts`: drop/create **`devcycle_e2e`** → `migrate up` → seed demo (0 usuarios). Valida nombre de BD (identificador SQL simple).
+- `e2e/golden.spec.ts` — **camino dorado FND-E2E**: registro (primer usuario → admin_global) → Productos visibles (Kanora/Verdana/Núcleo del seed) → crear producto desde la UI (modal solo admin) → crear módulo vía API con la cookie del contexto → **nodo visible en Arquitectura funcional** → árbol real de kanora (MODULO-01) → logout → /login. ~35 s.
+- **Trampas documentadas:** las rewrites de Next se hornean en `next build` (`.next/routes-manifest.json`) → el build E2E exige `API_INTERNAL_URL=http://localhost:3101`; **y** los RSC leen `API_INTERNAL_URL` en **runtime** (`lib/api.ts`, no horneada) → el `next start` del E2E la recibe también en env. Sin la runtime, las fetches SSR van a la demo :3001 → 401 → redirect /login (síntoma: heading "Productos" ausente).
+- `vitest.config.ts` en web: unitarios **solo** `src/**` (playwright no es vitest).
 
-### `apps/api` (previo + cambios de hoy)
+### Resto acumulado (Fase 1-T01…T12) — sin cambios esta sesión
 
-- **Refactor bootstrap**: `src/bootstrap.ts#createNestApp()` comparte el wiring exacto (helmet → better-auth crudo → body-parser → CORS → prefijo `/api/v1` → Swagger) entre `main.ts` y tests de integración.
-- `apps/api/vitest.config.ts` (unitarios; **excluye** `*.integration.spec.ts`) · `vitest.integration.config.ts` (opt-in, `globalSetup` con drop/create+seed de `devcycle_test`) · `src/integration/` con la suite escrita (health, 401, RBAC viewer, CRUD+move+duplicate+deactivate, tenant-escape v1, **fuzz de 300 moves**).
-- BD de test humilde: `devcycle_test` efímera, recreada en cada `test:integration`.
+Monorepo+CI · packages/db (migraciones up/down reversibles, seed idempotente) · packages/shared (zod, RFC 9457) · packages/ui (Tree/DataTable/Tabs/… · 25 tests · cobertura 94,9%) · better-auth (sesiones PG, cookie HttpOnly, primer usuario admin_global) · RBAC (admin_global/admin_product/collaborator/viewer + permissions granulares + productGuard) · products CRUD + miembros · nodes CRUD + move/duplicate/deactivate (ltree, anti-ciclo, serializable) · apps/web (Productos con KPIs reales, Resumen, Arquitectura funcional read-only, paleta Ctrl+K, login/signup/logout) · demo seeds (kanora/verdana/nucleo).
 
-### API + web vivas para la demo
+## 2. Pendiente inmediato (en este orden)
 
-- API `:3001` (`dist/main.js` vía `setsid`, log `/tmp/opencode/api.log`) · Web `:3000` (`next start`, log `/tmp/opencode/web.log`). BD prístina.
+### A · CI verde en GitHub — **primer push real pendiente**
 
-## 2. Pendiente inmediato (retomar por aquí, en este orden)
+Todo verde en local; falta el primer push y confirmar los 4 jobs en GitHub Actions (`build-test` · `db-migrations` · `integration-tests` · `e2e`). Riesgo bajo; revisar logs del job `e2e` (install de chromium-headless-shell con `--with-deps` usa sudo del runner — permitido en GH Actions).
 
-### A · Diagnosticar y cerrar la suite de integración API (ROTO)
+### B · Criterios de aceptación de fase (§2 de 07-plan)
 
-Síntoma: worker vitest cuelga tras la 1ª petición; `GET /api/v1/products` → **500 `responseTime:0`** (en curl con env idéntico → **401 correcto**; sign-up admin@itest.dev funciona). Los tests no fallan por assert — el proceso se queda parado tras request id=2 (health, auto-log off).
+1. ✅ login real · ✅ crear 2 productos aislados · ✅ árbol operativo (ltree íntegro, fuzz 300) · ✅ demo seed (`pnpm demo` en 5 min) · ✅ strict limpio · ✅ build/lint/typecheck/unit/integration/e2e escritos y verdes en local.
+2. Falta: **CI verde en GitHub** (ver A) · tokens/scopes (Fase 6a, fuera de scope) · time-to-interactive < 1.5 s en Productos (medir en demo formal; Next prod suele estar muy por debajo).
 
-- Sospecha principal: **better-auth bajo el transform de Vite** → `auth.api.getSession` lanza en el worker. Posibles arreglos:
-  1. `vitest.integration.config.ts`: `server: { deps: { inline: ['better-auth'] } }` o `deps: { interopDefault: true }`.
-  2. Alternativa robusta: tests de integración con **`node --test`** contra `dist/main.js` spawneado (evita Vite por completo) o curl-driven asserts en bash.
-  3. Aislar en un repro mínimo: `it('401', …)` solo con `request(app.getHttpServer()).get('/api/v1/products')` y loguear el error del guard (intercalar try/catch en `SessionGuard` con `console.log` temporal, después quitarlo).
-- `apps/api/src/integration/api.integration.spec.ts` contiene los casos — no borrar; reutilizar cuando pase el diagnóstico.
-- Criterio de cierre: `pnpm test:integration` verde en CI **y** el job `db-migrations` existente verde.
+### C · Deuda menor conocida
 
-### B · FND-E2E con Playwright (sin empezar)
+- `apps/web`: el context switcher (`AppShell`) no dispara `router.push` de forma fiable a mitad de carga (patrón igual que la paleta). Revisar con `useEffect` + `startTransition` si cuaja en demo.
+- KPIs de Productos no cubren "Tareas/Incidencias" (llegan en Fases 3–5) — etiquetados honestamente como Fase 1.
+- `Integrantes` lista membresías `product_members` explícitas; `admin_global` no aparece (acceso implícito) — correcto aunque confunda en demo.
+- API: rate-limit de better-auth bajo proxy sin IP (warning cosmético; configurar `advanced.ipAddress` si se pone tras proxy real).
+- Rewrites horneadas en build: **tras correr E2E local, reconstruir la web con env por defecto** (`pnpm --filter @devcycle/web build`) para que la demo proxye a :3001. (Esta sesión ya dejó la web reconstruida por defecto y :3000 vivo.)
+- pnpm en este PC: instalar con `CI=true pnpm --store-dir=/run/media/leonardo/Datos/.pnpm-store/v10 …`.
+- **Nunca** `pkill -f` con cadenas que aparezcan en la propia shell — PIDs en `/tmp/opencode/*.pid` o `ss -ltnp`.
 
-- `@playwright/test` **no** está en el workspace; **Chromium headless-shell 158.0.8127.18 descargado y ejecutable** en `~/.cache/ms-playwright` (verificado `--version`). `sudo` NO disponible → evitar `--with-deps`; las libs del sistema bastan para headless.
-- Plan: añadir `@playwright/test` a `apps/web`, `playwright.config.ts` (webServer: `next start` en CI con API + PG seed), 1 spec dorado: **registro → Productos visibles → crear producto → ver nodo en árbol**. Ejecutar aparte de `turbo test`.
+## 3. Estado de las BDs
 
-### C · Fuzz de movimientos (parte del criterio Fase 1)
+- `devcycle` (demo): 3 productos, 10 nodos kanora, **0 usuarios**. Reset limpio: `docker compose down -v && up -d postgres && pnpm --filter @devcycle/db migrate up && pnpm --filter @devcycle/db exec tsx src/seed.ts --demo`.
+- `devcycle_test` y `devcycle_e2e`: efímeras, drop/create en cada `test:integration` / `e2e`. No tocar a mano.
 
-Incluido en la suite de integración (300 ops deterministas con mulberry32) — queda bloqueado por el diagnóstico A, no por el código.
-
-### D · Demo y criterios de aceptación Fase 1 (§2 de 07-plan)
-
-1. ✅ login real · 2 productos aislados · árbol operativo · demo seed · strict limpio · ✅ build/lint/typecheck/unit/CI escrito.
-2. Falta: **CI verde en GitHub** (primer push real pendiente) · suite integración verde · e2e · tokens/scopes (Fase 6a) fuera de scope.
-3. Cuando toque demo formal: reset BD a prístino (ver §5) porque esta sesión dejó sesiones/productos de prueba ya limpiados.
-
-### E · Deuda menor conocida
-
-- `apps/web`: el contexto switcher (`AppShell`) no dispara `router.push` de forma fiable cuando el usuario lo cambia a mitad de carga (tests manuales OK; mismo patrón que la paleta). Revisar con `useEffect` + `startTransition` si cuaja en demo.
-- KPIs de Productos no cubren "Tareas/Incidencias" (dominios que llegan en Fases 3–5) — son honestos y etiquetados como Fase 1.
-- `Integrantes` muestra membresías `product_members` explícitas; el `admin_global` NO aparece listado como miembro (acceso implícito) — comportamiento correcto aunque confunda en demo.
-- pnpm en este PC perdió `~/.config/pnpm/rc` (apuntaba a `/run/media/leonardo/Datos/.pnpm-store/v10`); instalar con `CI=true pnpm --store-dir=/run/media/leonardo/Datos/.pnpm-store/v10 …` o recrear el rc.
-- **no usar `pkill -f` con cadenas que aparezcan en la propia shell** (mató 3 shells esta sesión); usar PIDs en `/tmp/opencode/*.pid` o `ss -ltnp`.
-
-## 3. Estado de la BD esta sesión
-
-- Reset completo (`down -v`) y re-sembrado: **3 productos, 10 nodos kanora, 0 usuarios, 0 actividad**. El usuario de pruebas `leonardo@example.com` y el producto `e2e-demo` creados vía web fueron eliminados en el reset (el FK append-only de `activity_log` impedía borrar el usuario, por eso el reset).
-- `devcycle_test` efímera: la recrea/borra cada `test:integration` vía `global-setup.ts` (drop/create); no tocar a mano.
-
-## 4. Comandos de recuperación (nueva sesión)
+## 4. Comandos de recuperación
 
 ```bash
 cd /mnt/datos/Programacion/AdminProject
 docker compose up -d postgres
-for i in $(seq 1 150); do docker compose exec -T postgres psql -U devcycle -d devcycle -c 'select 1' >/dev/null 2>&1 && echo ready && break; sleep 2; done
-export DATABASE_URL=postgres://devcycle:devcycle@localhost:5432/devcycle
-# si pnpm aborta por store: CI=true pnpm install --store-dir=/run/media/leonardo/Datos/.pnpm-store/v10
+# Demo:
 cd apps/api && setsid bash -c 'set -a; . ./.env; set +a; exec node dist/main.js' </dev/null > /tmp/opencode/api.log 2>&1 &
 cd ../web && setsid bash -c 'exec npx next start -p 3000' </dev/null > /tmp/opencode/web.log 2>&1 &
-curl localhost:3001/api/v1/health   # {"status":"ok","db":"up"}
-open http://localhost:3000          # web; registra el primer usuario (será admin_global)
+# Tests pesados (fuera de turbo test):
+cd apps/api && pnpm test:integration   # 7 tests, PG efímero
+cd ../web && API_INTERNAL_URL=http://localhost:3101 pnpm build && pnpm e2e   # ¡recordar rebuild por defecto después!
 ```
 
 ## 5. Decisiones y trampas de esta sesión (no repetir)
 
-- **Vitest unitario vs integración**: `pnpm test` jamás debe incluir `*.integration.spec.ts` (cuelga el runner). Unitarios excluyen integración; integración es opt-in (`vitest.integration.config.ts`).
-- **Better-auth bajo Vitest/Vite**: peticiones autenticadas pueden fallar silenciosamente en el worker aunque `dist/` (curl) funcione. Para tests de auth, o inline `better-auth` en deps del transform, o invocar la app spawneada.
-- **`useSearchParams()` + Suspense** en Next 15 produjo un boundary `B:0` al que el cliente no hidrató (contenido entregado server-side pero `hidden` eterno). SSR-safe pattern usado: `searchParams` como prop del Server Component + estado cliente init-una-vez + `history.replaceState` para `?node=…` sin re-render servidor.
-- **next build exige entorno saneado**: `betterAuth({ baseURL })` no acepta rutas relativas; en SSR prerender usar absolute default y `window.location.origin` en cliente.
-- **Testing Library en vitest sin `globals`** ⇒ cleanup no corre; `setupFiles` obligatorio.
-- **`--with-deps` de Playwright requiere sudo** → usar headless shell (ya instalado, funciona).
-- **Admin_global seed**: `seed --demo` crea org+productos AL MISMO TIEMPO que `users=0` → el primer `POST /api/auth/sign-up/email` recibe `admin_global` (hook `databaseHooks`). En BD con usuarios, el primero registrado se queda admin y los demás no.
-- **`activity_log` es append-only de verdad**: FK desde actores impide borrar usuarios con historia → reset con `down -v` es la única vía limpia.
-- **pkill self-match** → shells suicidadas 3 veces; de ahora en adelante PIDs en `/tmp/opencode/`.
+- **esbuild/Vite NO soporta `emitDecoratorMetadata`** → DI de Nest rota en runtime bajo vitest aunque el tipochequeo pase. Fix de referencia: SWC con `legacyDecorator`+`decoratorMetadata` (o probar el artefacto compilado).
+- **`request.agent(fn)`** en supertest ≠ factory: `fn` es el request-listener (nunca responde) → "cuelga para siempre". Pasar el `http.Server` real.
+- **Playwright arranca `webServer` ANTES que `globalSetup`** → la API bootea contra la BD aún inexistente (health 503) y los tests esperan a que tenga datos; funciona porque el health-check de Playwright reintenta, pero no asumir orden contrario.
+- **Next hornea `rewrites` en build** y RSC leen env en runtime → el E2E necesita `API_INTERNAL_URL` **en ambos** (build y start), apuntando a :3101.
+- **Retries de Playwright y "primer usuario admin_global"** son incompatibles en un retry → `retries: 0` por diseño.
+- Seeds/migraciones son idempotentes; el reset duro (`down -v`) sigue siendo la única vía si hay usuarios de prueba con historia (`activity_log` es append-only).
+- El diagnóstico real salió de **loguear la excepción en el filtro global** y del `grep` de la red — ojo con "cuelgues" que son en realidad tests fallidos que nunca reciben respuesta.
 
 ## 6. Referencias
 
-- Plan de Fase 1 y criterios: `docs/planificacion/07-plan-implementacion.md` §2 (F1-T01…T12).
-- Estrategia de pruebas (FND-U/I/E2E/SEC/MIG): `docs/planificacion/08-estrategia-pruebas.md` §3–4.
-- ADRs: `docs/adr/ADR-001..005`. Mockup (intocable): `muckup/`. Plan UI: `README.md`.
-- Reset BD: §5 HANDOFF anterior (Volumen `devcycle_pgdata`); demo-clean: `docker compose down -v && up -d postgres && pnpm --filter @devcycle/db migrate up && pnpm --filter @devcycle/db exec tsx src/seed.ts --demo`.
+- Plan e implementación: `docs/planificacion/07-plan-implementacion.md` §2 (F1-T01…T12). Criterios de fase §2.
+- Estrategia de pruebas: `docs/planificacion/08-estrategia-pruebas.md` §3–4 (FND-U/I/E2E/SEC/MIG — todos implementados y verdes).
+- ADRs: `docs/adr/ADR-001..005`. Mockup (intocable): `muckup/`.
+- CI: `.github/workflows/ci.yml` (4 jobs). E2E: `apps/web/{playwright.config.ts,e2e/}`. Integración: `apps/api/src/integration/`.

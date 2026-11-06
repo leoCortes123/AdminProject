@@ -2,7 +2,7 @@
 
 Plataforma de gestión del ciclo de vida del software: multiproducto, trazabilidad funcional y agentes IA vía MCP. Monorepo pnpm + Turborepo (Node ≥ 22).
 
-> Estado: **Fase 1 · Fundamentos** — cimientos verificados: monorepo, CI, PostgreSQL + Drizzle, better-auth, RBAC, árbol funcional (`ltree`), API NestJS operativa. `apps/web` pendiente (ver `docs/HANDOFF.md`).
+> Estado: **Fase 1 · Fundamentos** — cimientos verificados: monorepo, CI (4 jobs: build-test, db-migrations, integration-tests, e2e), PostgreSQL + Drizzle, better-auth, RBAC, árbol funcional (`ltree`), API NestJS operativa, web Next.js operativa. Integración API+PG y E2E Playwright **verdes**.
 
 ## Demo rápida (≈ 5 min)
 
@@ -30,12 +30,14 @@ muckup/          Mockup UX aprobado (intocable)
 
 ## Comandos
 
-| Comando                                      | Qué hace                                                   |
-| -------------------------------------------- | ---------------------------------------------------------- |
-| `pnpm demo`                                  | Levanta Postgres, migra y siembra datos demo (idempotente) |
-| `pnpm build` / `lint` / `typecheck` / `test` | Pipeline turbo de todo el workspace                        |
-| `pnpm db:migrate` / `db:seed`                | Migraciones y catálogos (`packages/db`)                    |
-| `docker compose up -d postgres [minio]`      | Infra local (MinIO bajo perfil `storage`)                  |
+| Comando                                      | Qué hace                                                                                |
+| -------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `pnpm demo`                                  | Levanta Postgres, migra y siembra datos demo (idempotente)                              |
+| `pnpm build` / `lint` / `typecheck` / `test` | Pipeline turbo de todo el workspace                                                     |
+| `pnpm test:integration` (en `apps/api`)      | Integración API+PG (health, RBAC, árbol ltree, fuzz 300)                                |
+| `pnpm e2e` (en `apps/web`)                   | E2E Playwright (requiere build con `API_INTERNAL_URL=http://localhost:3101 pnpm build`) |
+| `pnpm db:migrate` / `db:seed`                | Migraciones y catálogos (`packages/db`)                                                 |
+| `docker compose up -d postgres [minio]`      | Infra local (MinIO bajo perfil `storage`)                                               |
 
 ## Entorno
 
