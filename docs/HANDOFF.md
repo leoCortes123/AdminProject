@@ -1,103 +1,122 @@
-# HANDOFF — DevCycle (AdminProject) · 2026-11-06 (2ª sesión)
+# HANDOFF — DevCycle (AdminProject) · 2026-11-06 (3ª sesión)
 
-> **Estado:** Fase 1 · Fundamentos — **~60% completada**. `packages/shared`, `packages/db` y **`apps/api` funcionando y verificados E2E** (F1-T04…T07 ✅: API NestJS, better-auth, RBAC, products, nodes con move/duplicate/deactivate, activity_log, filtro problem+json, OpenAPI). `apps/web` (F1-T08), `packages/ui` (F1-T09), tests FND-* y CI verde en GitHub siguen pendientes.
-> **Punto seguro:** BD re-sembrada a estado prístino (3 productos, 10 nodos, **0 usuarios**); CI (`.github/workflows/ci.yml`), ADRs (`docs/adr/`), README raíz.
+> **Estado:** Fase 1 · Fundamentos — **≈70–75% completada**. `apps/web` (F1-T08) y `packages/ui` (F1-T09) **terminadas y verificadas manualmente en navegador real** (login, sign-up con auto-admin_global, Productos, Resumen, Arquitectura funcional con árbol LTREE real, paleta Ctrl+K, toast, logout). `lint`/`typecheck`/`test`/`build` del workspace **verdes**.
+> **Sinjo prístino de demo:** BD re-sembrada (3 productos, 10 nodos, **0 usuarios**). Web en `:3000`, API en `:3001`, ambas con `setsid`.
+> **⚠ Roto/no verificado:** la suite de **integración API+PG** (`apps/api/src/integration/`) está escrita pero NO verde — ver §3/§5.
 
 ## 0. Qué es el proyecto
 
-Plataforma de gestión del ciclo de vida del software (multiproducto, trazabilidad funcional, agentes IA vía MCP). Brief completo en `prompt.md`; plan aprobado en `docs/planificacion/` (12 documentos). Mockup UX aprobado en `muckup/` (referencia obligatoria de UI, **intocable**). Desarrollo según `docs/planificacion/07-plan-implementacion.md`, **Fase 1 · Fundamentos**. Stack: pnpm+Turborepo · Node 22 · TS strict · Next.js 15 (web) · NestJS 11 (api) · PostgreSQL 16 + Drizzle · better-auth · MCP (Fase 6, fuera de esta sesión).
+Plataforma de gestión del ciclo de vida del software (multiproducto, trazabilidad funcional, agentes IA vía MCP). Brief en `prompt.md`; plan en `docs/planificacion/` (12 docs). Mockup UX aprobado en `muckup/` (**intocable** — `apps/web/src/app/globals.css` es su puerto fiel). Desarrollo según `docs/planificacion/07-plan-implementacion.md`, **Fase 1 · Fundamentos**.
 
-## 1. Hecho y verificado ✅
+## 1. Hecho y verificado ✅ (acumulado Fases 1-T01…T09)
 
-### Infra tras reinicio del PC
+### Raíz / monorepo / CI
 
-- Postgres en recuperación tras apagado forzoso: fsync de datos tardó ~70–90 s; `pg_isready` devuelve 0 aunque la BD no esté lista — **la sonda correcta es** `docker compose exec -T postgres psql -U devcycle -d devcycle -c 'select 1'`.
-- BD purgada y re-sembrada a prístino: 3 productos, 10 nodos (kanora), 4 roles, 14 permisos, role_permissions=34, workflow_states=30, activity_log=0, users=0. Viene de `docker compose down -v` + `up` + `migrate up` + `seed --demo` (idempotentes ambos).
+- CI en `.github/workflows/ci.yml` (jobs `build-test`: lint+typecheck+unit+build; `db-migrations`: up→down --all→up + seed ×2 + sanity psql contra PG 16 service).
+- `pnpm demo` arreglado: `up postgres → migrate → seed --demo` + mensaje de siguientes pasos.
+- Prettier/ESLint raíz funcionan con import relativo (evita resolver el enlace inexistente).
+- `.github/workflows/ci.yml` YAML válido; sin secrets requeridos.
 
-### Monorepo raíz (F1-T01)
+### `packages/ui` ✅ (F1-T09) — nuevo esta sesión
 
-- `git init -b main`; `.gitignore` (incluye `.env`), `docker-compose.yml` (`postgres:16-alpine` + `minio` bajo perfil `storage`), `package.json` (scripts `build/dev/lint/typecheck/test/db:*/demo`), `turbo.json`, ESLint flat (`packages/config/eslint.config.mjs`; **`consistent-type-imports` desactivada** — rompe DI, ver §3), Prettier, README raíz nuevo, CI `.github/workflows/ci.yml` (jobs: `build-test` lint+typecheck+unit+build; `db-migrations` con PG service: up→down --all→up, seed ×2, sanity psql).
-- `pnpm demo` arreglado: antes NO incluía los datos demo; ahora `up postgres → migrate → seed --demo` y sugiere arrancar la API.
+Componentes portados del mockup (className global del design system, sin CSS propio): **Tree** (teclado completo, modo controlado, `collectExpandableIds`), **DataTable**, **Pill**, **Tabs** (ARIA tablist/tab), **EmptyState**, **CommandPalette** (filtro ANDeado, ↑↓/Enter/Esc, click-fuera).
 
-### `packages/config` ✅ · `packages/shared` ✅ (CJS + d.ts en `dist/`)
+- 25 tests @testing-library/react + jsdom, **cobertura 94.9%** (umbral ≥70% configurado en `vitest.config.ts` con `--coverage`), scripts `test` + `test:coverage`.
+- Fix: el cleanup de Testing Library exige `setupFiles` (`src/test.setup.ts`) cuando vitest corre sin `globals`.
+- Decisión: `CSP/STRICTS` del mockup respetados; `packages/ui` documentado como "clases globales": el consumidor importa el CSS global.
 
-### `packages/db` ✅
+### `apps/web` ✅ (F1-T08) — nuevo esta sesión
 
-- Esquema Drizzle, migraciones SQL up/down (`0001_extensions`, `0002_core`), runner propio, seed idempotente (`--demo`), **`declaration: true`** en build (faltaba: `@devcycle/db` publicaba `types` apuntando a un `dist/index.d.ts` inexistente → rompía typecheck de la API).
-- `@types/node` añadido a devDependencies (typecheck de `seed.ts`/`migrate.ts` fallaba sin él).
+Next.js 15 (App Router, React 19, proxy `/api/*` → API `API_INTERNAL_URL`, fallback `http://localhost:3001`):
 
-### `apps/api` ✅ — F1-T04/T05/T06/T07 (arranca en `:3001`)
+- Shell del mockup portado: sidebar (brand, context switch org↔producto, navegación `Pronto`-disabled para vistas F2+), topbar (breadcrumb, buscador, avatar, Cerrar sesión), toast, org-banner, selección `?node=CODE` en la URL del árbol.
+- **Login** (`/login`, tabs Entrar/Crear cuenta) + `better-auth/react` client (`/api/auth`, same-origin vía proxy). Middleware exige cookie `better-auth.session_token` (o `__Secure-`) → redirect a `/login?next=…`; `/login` con sesión → `/products`.
+- **Productos** (vista org): tabla clicable (→ resumen), KPIs reales computados en servidor (nodos, estado, integrantes), botón **Nuevo producto** (modal, solo admin_global) — verificado en navegador: `e2e-demo` creado, API responde OK.
+- **Resumen**: hero real (nombre, estado, stack, rol), descripción (EmptyState honesto), repo, avance por módulo calculado desde nodos (`done`/`total` descendientes), integrantes reales.
+- **Arquitectura funcional** (read-only): árbol desde la API, filtro por tipo con conteo, expandir/contraer, leyenda real, ficha con pestañas (Resumen con KV reales + tabs vacías Fase 2/3/4 con EmptyState honestos).
+- Ctrl+K paleta (navegación + nodos del producto en contexto; carga perezosa del árbol).
+- Verificado en navegador real: sign-up (primer usuario → `admin_global`), login, logout, POST producto vía UI, navegación completa, `?node=PANT-02` compartible.
 
-- **Bootstrap**: `helmet` → handler crudo de better-auth (`/api/auth/*`) **antes** del body-parser → `useBodyParser('json')` → CORS (`WEB_URL`, credentials) → prefijo `api/v1` → Swagger en `/api/v1/docs` (paths: `/me`, `/health`, `/products*`, `/nodes*`). Logger pino JSON (`nestjs-pino`, cookie redactada); `enableShutdownHooks`.
-- **Env**: zod (`envSchema`) validado por `validateEnv` (en `ConfigModule.forRoot`) y `getEnv()` memoizado para consumo fuera de DI (auth). `apps/api/.env` creado (no versionado); `.env.example` versionado.
-- **better-auth**: `drizzleAdapter` (user/session/account/verification), email+contraseña (min 8), sesiones PG, `trustedOrigins: [WEB_URL, BETTER_AUTH_URL]` (mejor-auth exige `Origin` en POST → si no, sign-out desde web → 403 `INVALID_ORIGIN`). **Hook `user.create.after`: primer usuario → `admin_global`** (verificado: registro → `/api/v1/me` devuelve `globalRoles:["admin_global"]`; sign-out → 401).
-- **RBAC**: `SessionGuard` global (`@Public()` en health), `ProductGuard` (resuelve `:slug` → 404 si no existe; exige membresía o `admin_global`; 403 si no), `PermissionsGuard` + `@Permissions(...)` con **permisos efectivos**: `admin_global` → todos; si no, permisos del rol en `product_members` para ese producto. `admin_global` bypass documentado en ADR-004.
-- **Products**: `GET /products` (membresías o todos si admin_global), `POST /products` (solo `products:manage` = admin_global) con **creación compuesta en una transacción**: product + member(creador `admin_product`, `accepted_at=now()`) + `workflow_states` (6 task + 4 issue) + `state_transitions` (18) por defecto + `activity_log(product.created)`. `GET /products/:slug`, `PATCH` (`config:manage`), `GET/POST /products/:slug/members` (alta directa de usuarios **ya registrados**; sin flujo de invitación por email en v1 — decisión), `members:manage`.
-- **Nodes** (`ltree`): `GET` (plano, `ORDER BY path`), `POST` (creado en transacción: código único por producto con índice parcial → 409 `node.code_conflict`; `position = max+1`), `GET/PATCH` (nombre/estado/owner/posición; **code inmutable**), `POST .../move` (**serializable**; validación anti-ciclo: 422 `node.move_to_self`/`node.move_into_descendant`/`node.parent_not_found`; recomputado `path`/`depth` del subárbol con CTE `CASE` en un solo UPDATE; hermano renumerado si `position` dado), `POST .../duplicate` (subárbol completo; códigos nuevos con el siguiente número libre por prefijo — incluye códigos históricos/borrados), `POST .../deactivate` (soft-delete del subárbol, `path <@`).
-- **Auditoría**: `activity_log` en todas las mutaciones (`product.created`, `member.added|role_changed`, `node.created|updated|moved|duplicated|deactivated`), dentro de la misma transacción que la operación.
-- **Errores**: filtro global → `application/problem+json` (RFC 9457): ZodError→400 `validation.failed`, HttpException→status `http.<n>`, 23505→409 `db.unique_violation`, desconocido→500 `internal.error` (nunca filtra internals; 5xx con stack en log).
-- **Unit tests** (`vitest`, FND-U): `tree.utils.spec.ts` (13) + `problem-details.filter.spec.ts` (6) — 19 verdes. `turbo test/typecheck/lint/build` todo verde en el workspace.
-- **Fix runtime crítico**: las lecturas dentro de transacciones deben usar `tx` (no el pool) — `getNode(..., tx)`; antes devolvía estado pre-commit (stale reads) en `move`.
-- **Fix `subpath()`**: `subpath(path, nlevel(path))` es inválido para el nodo raíz del subárbol → `invalid positions`; CTE con `CASE` (ver ADR-005).
-- **Anti-patrón detectado y desactivado**: `consistent-type-imports` convertiría clases inyectadas en `import type` y rompería el DI de Nest (2 incidentes reales; regla `off` en `packages/config`).
+### `apps/api` (previo + cambios de hoy)
 
-### ADRs ✅ (`docs/adr/`)
+- **Refactor bootstrap**: `src/bootstrap.ts#createNestApp()` comparte el wiring exacto (helmet → better-auth crudo → body-parser → CORS → prefijo `/api/v1` → Swagger) entre `main.ts` y tests de integración.
+- `apps/api/vitest.config.ts` (unitarios; **excluye** `*.integration.spec.ts`) · `vitest.integration.config.ts` (opt-in, `globalSetup` con drop/create+seed de `devcycle_test`) · `src/integration/` con la suite escrita (health, 401, RBAC viewer, CRUD+move+duplicate+deactivate, tenant-escape v1, **fuzz de 300 moves**).
+- BD de test humilde: `devcycle_test` efímera, recreada en cada `test:integration`.
 
-ADR-001 monorepo · ADR-002 NestJS · ADR-003 Drizzle · ADR-004 better-auth · ADR-005 ltree — todos con alternativas y consecuencias.
+### API + web vivas para la demo
 
-## 2. Pendiente inmediato (retomar por aquí)
+- API `:3001` (`dist/main.js` vía `setsid`, log `/tmp/opencode/api.log`) · Web `:3000` (`next start`, log `/tmp/opencode/web.log`). BD prístina.
 
-1. **F1-T08 · `apps/web`** (Next.js 15, XL): App Router + layout mockup (sidebar/topbar), login, selector de contexto, Productos, Resumen skeleton, árbol read-only + ficha vacía, Ctrl+K. **Revisar `muckup/` antes de tocar UI (intocable).** Proxy cookie/auth vía BFF (`/api/auth` → API). `↔ packages/ui`.
-2. **F1-T09 · `packages/ui`** (Tree, DataTable, Pill, Tabs, EmptyState, CommandPalette portados del mockup, tests ≥70%).
-3. **FND-T07/E2E**: fuzz de 1.000 movimientos aleatorios sobre el árbol; FND-SEC completo (tenant-escape A/B); FND-I (API contra PG efímero); FND-E2E (Playwright) cuando web exista.
-4. **CI en GitHub**: primer push verde pendiente (`.github/workflows/ci.yml` ya escrito; verificar nombres de secrets — no requiere ninguno).
-5. **Fase 1 completa**: criterios §2 de 07-plan (login real, 2 productos aislados, árbol operativo, CI verde, demo).
-6. **Fase 1 · calidad**: tests de `nodes.service` con PG efímero (move transaccional, duplicado, deactivate); property-based del anti-ciclo.
-7. Decisiones v1 registradas y pendientes de ratificar: alta directa de miembros existentes (sin invitación por email); `product.uuid7` vs better-auth text ids (status quo, ver ADR-004); 1 sola organización implícita (`getDefaultOrgId` toma la más antigua).
+## 2. Pendiente inmediato (retomar por aquí, en este orden)
 
-## 3. Trampas y decisiones ya resueltas (no repetir análisis)
+### A · Diagnosticar y cerrar la suite de integración API (ROTO)
 
-- **`subpath(path, nlevel(path))` → `invalid positions`** en ltree: el nodo raíz del subárbol necesita `CASE` en el UPDATE (ADR-005).
-- **Stale reads dentro de `db.transaction`**: `this.db` (pool) no ve cambios no commitados → pasar `tx` (p. ej. `getNode(product.id, code, tx)`).
-- **CSRF de better-auth**: exige `Origin` en POST; `trustedOrigins` debe incluir `WEB_URL` → `INVALID_ORIGIN` en sign-out desde web.curl sin Origin → 403 `MISSING_OR_NULL_ORIGIN` (comportamiento esperado).
-- **`consistent-type-imports` + `emitDecoratorMetadata` = DI roto** (`Nest can't resolve dependencies of …`): clases inyectadas SIEMPRE como `import` de valor. Regla desactivada.
-- **pino-http loguea el error con el stack de pino, no del origen** — buscar `ProblemDetailsFilter` en el log para el stack real.
-- **`pnpm install` aborta (no-TTY) si la raíz cambia** o si el store esperado no coincide: `node_modules` se instaló con `storeDir=/run/media/leonardo/Datos/.pnpm-store/v10`; tras el reinicio del PC desapareció `/home/leonardo/.config/pnpm/rc` (que fijaba ese store) y pnpm quiere `/mnt/datos/.pnpm-store/v10`. Solución: `CI=true pnpm install --store-dir=/run/media/leonardo/Datos/.pnpm-store/v10`. **Pendiente del usuario**: recrear el rc (p. ej. `store-dir=/run/media/leonardo/Datos/.pnpm-store/v10`) o reinstalar de cero con el store por defecto.
-- **Procesos de fondo de esta sesión**: los hijos de shell mueren con el grupo; lanzar la API con `setsid` (p. ej. `(setsid bash -c 'set -a; . ./.env; set +a; exec node dist/main.js' </dev/null > log 2>&1 &)`).
-- **Postgres tras apagado forzoso**: fsync/recovery lento; sondear SIEMPRE con `psql -c 'select 1'`, no con `pg_isready`.
-- **ltree label**: `code` en minúsculas con `-`→`_` (`MODULO-01` → `modulo_01`).
-- **Better-auth ids son `text`**, no uuid: por eso `ownerId`, `actor_user_id` son text en el modelo.
-- **Código duplicado rechazado con 409** (`node.code_conflict`) vía índice parcial único `(product_id, code) WHERE deleted_at IS NULL`.
-- **Express 5**: wildcard routes cambian (`*splat`); el handler de better-auth se monta con middleware discriminador por `req.path`, evitando la sintaxis.
+Síntoma: worker vitest cuelga tras la 1ª petición; `GET /api/v1/products` → **500 `responseTime:0`** (en curl con env idéntico → **401 correcto**; sign-up admin@itest.dev funciona). Los tests no fallan por assert — el proceso se queda parado tras request id=2 (health, auto-log off).
 
-## 4. Estado al cortar
+- Sospecha principal: **better-auth bajo el transform de Vite** → `auth.api.getSession` lanza en el worker. Posibles arreglos:
+  1. `vitest.integration.config.ts`: `server: { deps: { inline: ['better-auth'] } }` o `deps: { interopDefault: true }`.
+  2. Alternativa robusta: tests de integración con **`node --test`** contra `dist/main.js` spawneado (evita Vite por completo) o curl-driven asserts en bash.
+  3. Aislar en un repro mínimo: `it('401', …)` solo con `request(app.getHttpServer()).get('/api/v1/products')` y loguear el error del guard (intercalar try/catch en `SessionGuard` con `console.log` temporal, después quitarlo).
+- `apps/api/src/integration/api.integration.spec.ts` contiene los casos — no borrar; reutilizar cuando pase el diagnóstico.
+- Criterio de cierre: `pnpm test:integration` verde en CI **y** el job `db-migrations` existente verde.
 
-- API **en marcha** en `http://localhost:3001` (lanzada con `setsid`); pid en `/tmp/opencode/api.pid`; log en `/tmp/opencode/api.log`.
-- BD prístina: **sin usuarios**; el primer registro recibe `admin_global`.
-  - Flujo verificado: sign-up → `/me` (admin_global) → sign-out → 401. (El usuario de prueba `leonardo@example.com` fue eliminado en el reseteo; vuelve a registrarte.)
-  - `atlas-qa` (producto de pruebas E2E) eliminado en el reseteo.
-- Versiones: better-auth 1.7.18 · @nestjs/* 11.2.8 · Express 5.2.1 · drizzle-orm 0.38.4 · postgres.js 3.4.9.
-- Sin commits pendientes al cortar (trabajo commitea por hitos; ver `git log`).
+### B · FND-E2E con Playwright (sin empezar)
 
-## 5. Comandos de recuperación
+- `@playwright/test` **no** está en el workspace; **Chromium headless-shell 158.0.8127.18 descargado y ejecutable** en `~/.cache/ms-playwright` (verificado `--version`). `sudo` NO disponible → evitar `--with-deps`; las libs del sistema bastan para headless.
+- Plan: añadir `@playwright/test` a `apps/web`, `playwright.config.ts` (webServer: `next start` en CI con API + PG seed), 1 spec dorado: **registro → Productos visibles → crear producto → ver nodo en árbol**. Ejecutar aparte de `turbo test`.
+
+### C · Fuzz de movimientos (parte del criterio Fase 1)
+
+Incluido en la suite de integración (300 ops deterministas con mulberry32) — queda bloqueado por el diagnóstico A, no por el código.
+
+### D · Demo y criterios de aceptación Fase 1 (§2 de 07-plan)
+
+1. ✅ login real · 2 productos aislados · árbol operativo · demo seed · strict limpio · ✅ build/lint/typecheck/unit/CI escrito.
+2. Falta: **CI verde en GitHub** (primer push real pendiente) · suite integración verde · e2e · tokens/scopes (Fase 6a) fuera de scope.
+3. Cuando toque demo formal: reset BD a prístino (ver §5) porque esta sesión dejó sesiones/productos de prueba ya limpiados.
+
+### E · Deuda menor conocida
+
+- `apps/web`: el contexto switcher (`AppShell`) no dispara `router.push` de forma fiable cuando el usuario lo cambia a mitad de carga (tests manuales OK; mismo patrón que la paleta). Revisar con `useEffect` + `startTransition` si cuaja en demo.
+- KPIs de Productos no cubren "Tareas/Incidencias" (dominios que llegan en Fases 3–5) — son honestos y etiquetados como Fase 1.
+- `Integrantes` muestra membresías `product_members` explícitas; el `admin_global` NO aparece listado como miembro (acceso implícito) — comportamiento correcto aunque confunda en demo.
+- pnpm en este PC perdió `~/.config/pnpm/rc` (apuntaba a `/run/media/leonardo/Datos/.pnpm-store/v10`); instalar con `CI=true pnpm --store-dir=/run/media/leonardo/Datos/.pnpm-store/v10 …` o recrear el rc.
+- **no usar `pkill -f` con cadenas que aparezcan en la propia shell** (mató 3 shells esta sesión); usar PIDs en `/tmp/opencode/*.pid` o `ss -ltnp`.
+
+## 3. Estado de la BD esta sesión
+
+- Reset completo (`down -v`) y re-sembrado: **3 productos, 10 nodos kanora, 0 usuarios, 0 actividad**. El usuario de pruebas `leonardo@example.com` y el producto `e2e-demo` creados vía web fueron eliminados en el reset (el FK append-only de `activity_log` impedía borrar el usuario, por eso el reset).
+- `devcycle_test` efímera: la recrea/borra cada `test:integration` vía `global-setup.ts` (drop/create); no tocar a mano.
+
+## 4. Comandos de recuperación (nueva sesión)
 
 ```bash
 cd /mnt/datos/Programacion/AdminProject
 docker compose up -d postgres
 for i in $(seq 1 150); do docker compose exec -T postgres psql -U devcycle -d devcycle -c 'select 1' >/dev/null 2>&1 && echo ready && break; sleep 2; done
 export DATABASE_URL=postgres://devcycle:devcycle@localhost:5432/devcycle
-pnpm install --store-dir=/run/media/leonardo/Datos/.pnpm-store/v10   # si pnpm aborta por store-dir
-pnpm --filter @devcycle/shared build && pnpm --filter @devcycle/db build
+# si pnpm aborta por store: CI=true pnpm install --store-dir=/run/media/leonardo/Datos/.pnpm-store/v10
 cd apps/api && setsid bash -c 'set -a; . ./.env; set +a; exec node dist/main.js' </dev/null > /tmp/opencode/api.log 2>&1 &
-curl http://localhost:3001/api/v1/health
+cd ../web && setsid bash -c 'exec npx next start -p 3000' </dev/null > /tmp/opencode/web.log 2>&1 &
+curl localhost:3001/api/v1/health   # {"status":"ok","db":"up"}
+open http://localhost:3000          # web; registra el primer usuario (será admin_global)
 ```
 
-Estado del seed (`migrate status`): `[x] 0001_extensions`, `[x] 0002_core`.
+## 5. Decisiones y trampas de esta sesión (no repetir)
+
+- **Vitest unitario vs integración**: `pnpm test` jamás debe incluir `*.integration.spec.ts` (cuelga el runner). Unitarios excluyen integración; integración es opt-in (`vitest.integration.config.ts`).
+- **Better-auth bajo Vitest/Vite**: peticiones autenticadas pueden fallar silenciosamente en el worker aunque `dist/` (curl) funcione. Para tests de auth, o inline `better-auth` en deps del transform, o invocar la app spawneada.
+- **`useSearchParams()` + Suspense** en Next 15 produjo un boundary `B:0` al que el cliente no hidrató (contenido entregado server-side pero `hidden` eterno). SSR-safe pattern usado: `searchParams` como prop del Server Component + estado cliente init-una-vez + `history.replaceState` para `?node=…` sin re-render servidor.
+- **next build exige entorno saneado**: `betterAuth({ baseURL })` no acepta rutas relativas; en SSR prerender usar absolute default y `window.location.origin` en cliente.
+- **Testing Library en vitest sin `globals`** ⇒ cleanup no corre; `setupFiles` obligatorio.
+- **`--with-deps` de Playwright requiere sudo** → usar headless shell (ya instalado, funciona).
+- **Admin_global seed**: `seed --demo` crea org+productos AL MISMO TIEMPO que `users=0` → el primer `POST /api/auth/sign-up/email` recibe `admin_global` (hook `databaseHooks`). En BD con usuarios, el primero registrado se queda admin y los demás no.
+- **`activity_log` es append-only de verdad**: FK desde actores impide borrar usuarios con historia → reset con `down -v` es la única vía limpia.
+- **pkill self-match** → shells suicidadas 3 veces; de ahora en adelante PIDs en `/tmp/opencode/`.
 
 ## 6. Referencias
 
-- Plan de Fase 1 y criterios: `docs/planificacion/07-plan-implementacion.md` §2 (F1-T01…T12, R-03/R-07).
-- Modelo de datos: `docs/planificacion/04-modelo-datos.md` (§10 matriz autorización).
-- Arquitectura técnica y límites: `docs/planificacion/03-arquitectura-tecnica.md` §5 (prohibido web→db).
-- Mockup (intocable): `muckup/index.html` + `muckup/README.md` · ADRs: `docs/adr/`.
-- Estrategia de pruebas: `docs/planificacion/08-estrategia-pruebas.md` (FND-U/I/E2E/SEC/MIG).
+- Plan de Fase 1 y criterios: `docs/planificacion/07-plan-implementacion.md` §2 (F1-T01…T12).
+- Estrategia de pruebas (FND-U/I/E2E/SEC/MIG): `docs/planificacion/08-estrategia-pruebas.md` §3–4.
+- ADRs: `docs/adr/ADR-001..005`. Mockup (intocable): `muckup/`. Plan UI: `README.md`.
+- Reset BD: §5 HANDOFF anterior (Volumen `devcycle_pgdata`); demo-clean: `docker compose down -v && up -d postgres && pnpm --filter @devcycle/db migrate up && pnpm --filter @devcycle/db exec tsx src/seed.ts --demo`.

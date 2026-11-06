@@ -1,0 +1,27 @@
+{
+  "extends": "@devcycle/config/tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "noEmit": false,
+    "declaration": true,
+    "sourceMap": true,
+    "jsx": "react-jsx",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "verbatimModuleSyntax": false,
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable"
+    ]
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/**/*.spec.tsx",
+    "src/**/*.spec.ts",
+    "src/test.setup.ts"
+  ]
+}
