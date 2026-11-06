@@ -140,8 +140,8 @@ export function LoginForm() {
       </form>
 
       <p className="login-foot">
-        El <strong>primer usuario registrado</strong> recibe el rol Administrador global.
-        El resto entra a los productos por invitación de un administrador.
+        El <strong>primer usuario registrado</strong> recibe el rol Administrador global. El resto
+        entra a los productos por invitación de un administrador.
       </p>
     </div>
   );

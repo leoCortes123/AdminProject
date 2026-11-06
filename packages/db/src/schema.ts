@@ -160,7 +160,9 @@ export const products = pgTable(
     tagline: text('tagline'),
     description: text('description'),
     status: text('status').notNull().default('in_development'),
-    techStack: jsonb('tech_stack').notNull().default(sql`'[]'::jsonb`),
+    techStack: jsonb('tech_stack')
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     repoUrl: text('repo_url'),
     icon: text('icon'),
     color: text('color'),
@@ -169,7 +171,10 @@ export const products = pgTable(
     deletedAt: timestamptz('deleted_at'),
   },
   (t) => [
-    check('products_status_check', sql`${t.status} IN ('active','in_development','maintenance','archived')`),
+    check(
+      'products_status_check',
+      sql`${t.status} IN ('active','in_development','maintenance','archived')`,
+    ),
     index('products_org_idx').on(t.orgId),
   ],
 );
@@ -314,7 +319,9 @@ export const activityLog = pgTable(
     entityKind: text('entity_kind'),
     entityId: uuid('entity_id'),
     summary: text('summary').notNull(),
-    metadata: jsonb('metadata').notNull().default(sql`'{}'::jsonb`),
+    metadata: jsonb('metadata')
+      .notNull()
+      .default(sql`'{}'::jsonb`),
     ip: inet('ip'),
     createdAt: timestamptz('created_at').notNull().defaultNow(),
   },

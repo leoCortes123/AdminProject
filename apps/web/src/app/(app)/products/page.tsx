@@ -37,7 +37,9 @@ export default async function ProductsPage() {
     return acc;
   }, {});
   const statusSummary = Object.entries(byStatus)
-    .map(([status, count]) => `${count} ${productStatusLabel(status as ProductStatus).toLowerCase()}`)
+    .map(
+      ([status, count]) => `${count} ${productStatusLabel(status as ProductStatus).toLowerCase()}`,
+    )
     .join(' · ');
 
   return (
@@ -45,7 +47,10 @@ export default async function ProductsPage() {
       <div className="view-head">
         <div>
           <h1>Productos</h1>
-          <p className="sub">Organización general · {products.length} producto{products.length === 1 ? '' : 's'} registrado{products.length === 1 ? '' : 's'}</p>
+          <p className="sub">
+            Organización general · {products.length} producto{products.length === 1 ? '' : 's'}{' '}
+            registrado{products.length === 1 ? '' : 's'}
+          </p>
         </div>
         <div className="spacer" />
         <NewProductButton canManage={isAdminGlobal} />
@@ -80,7 +85,8 @@ export default async function ProductsPage() {
         </div>
       </div>
       <p style={{ color: 'var(--ink-3)', fontSize: '10.5px', marginTop: 8 }}>
-        Haz clic en una fila para entrar al espacio de trabajo del producto. La organización no mezcla información entre productos: solo agrega métricas.
+        Haz clic en una fila para entrar al espacio de trabajo del producto. La organización no
+        mezcla información entre productos: solo agrega métricas.
       </p>
     </>
   );

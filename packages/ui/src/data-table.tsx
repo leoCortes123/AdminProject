@@ -58,7 +58,9 @@ export function DataTable<T>({
               return (
                 <tr
                   key={key}
-                  className={[classes, selected ? 'selected' : ''].filter(Boolean).join(' ') || undefined}
+                  className={
+                    [classes, selected ? 'selected' : ''].filter(Boolean).join(' ') || undefined
+                  }
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                   tabIndex={onRowClick ? 0 : undefined}
                   onKeyDown={
@@ -75,7 +77,9 @@ export function DataTable<T>({
                 >
                   {columns.map((column) => (
                     <td key={column.key} className={column.className}>
-                      {column.render ? column.render(row) : String((row as Record<string, unknown>)[column.key] ?? '')}
+                      {column.render
+                        ? column.render(row)
+                        : String((row as Record<string, unknown>)[column.key] ?? '')}
                     </td>
                   ))}
                 </tr>

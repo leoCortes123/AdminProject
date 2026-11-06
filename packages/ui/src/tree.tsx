@@ -73,7 +73,9 @@ export function Tree({
   expandedIds,
   onExpandedIdsChange,
 }: TreeProps) {
-  const [internalExpanded, setInternalExpanded] = useState<Set<string>>(() => collectExpandableIds(items));
+  const [internalExpanded, setInternalExpanded] = useState<Set<string>>(() =>
+    collectExpandableIds(items),
+  );
   const expanded = expandedIds ?? internalExpanded;
   const setExpanded = useCallback(
     (updater: (current: Set<string>) => Set<string>) => {
@@ -203,7 +205,13 @@ export function Tree({
             {item.typeColor && (
               <span
                 aria-hidden="true"
-                style={{ width: 8, height: 8, borderRadius: 2, background: item.typeColor, flex: '0 0 auto' }}
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 2,
+                  background: item.typeColor,
+                  flex: '0 0 auto',
+                }}
               />
             )}
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>

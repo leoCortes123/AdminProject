@@ -1,0 +1,11 @@
+# Ignorado (además de lo que ya excluye .gitignore).
+
+# Mockup aprobado: intocable (docs/HANDOFF.md §0).
+muckup/
+
+# Lockfile y configuración del gestor: los formatea pnpm, no prettier.
+pnpm-lock.yaml
+pnpm-workspace.yaml
+
+# Brief original del proyecto.
+prompt.md

@@ -33,7 +33,7 @@ graph LR
     API --> STORE
 ```
 
-**Principios:** (1) el dominio vive en `apps/api`; web es presentación + BFF fino. (2) MCP es un *cliente más*, no contiene dominio. (3) Ningún componente habla con PostgreSQL directamente salvo la API. (4) Toda integración externa pasa por `integrations` + scopes.
+**Principios:** (1) el dominio vive en `apps/api`; web es presentación + BFF fino. (2) MCP es un _cliente más_, no contiene dominio. (3) Ningún componente habla con PostgreSQL directamente salvo la API. (4) Toda integración externa pasa por `integrations` + scopes.
 
 ## 3. Estructura de monorepo (D-011 🔷)
 
@@ -58,25 +58,25 @@ pnpm workspaces + Turborepo · Node ≥ 22 LTS · commits convencionales · vers
 
 ### 4.1 Framework frontend — **Next.js 15 (App Router) + React 19** · D-002 🔷
 
-| Alternativa | A favor | En contra | Veredicto |
-|---|---|---|---|
-| **Next.js** | TS-first, RSC reduce JS al cliente (árbol grande), ecosistema, ruta BFF para auth por cookies, despliegue simple (Node o standalone) | Curva RSC; versión major estable reciente | **Propuesta** |
-| Remix / React Router 7 | Modelo mental simple, loaders | Menor ecosistema; sin ventaja decisiva | Descartada |
-| SvelteKit | Menos JS, excelente DX | Rompe el criterio "todo TypeScript + React team skill"; contratación y libs | Descartada |
-| Angular | Completo enterprise | Sobre-ingeniería para equipo pequeño | Descartada |
+| Alternativa            | A favor                                                                                                                              | En contra                                                                   | Veredicto     |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- | ------------- |
+| **Next.js**            | TS-first, RSC reduce JS al cliente (árbol grande), ecosistema, ruta BFF para auth por cookies, despliegue simple (Node o standalone) | Curva RSC; versión major estable reciente                                   | **Propuesta** |
+| Remix / React Router 7 | Modelo mental simple, loaders                                                                                                        | Menor ecosistema; sin ventaja decisiva                                      | Descartada    |
+| SvelteKit              | Menos JS, excelente DX                                                                                                               | Rompe el criterio "todo TypeScript + React team skill"; contratación y libs | Descartada    |
+| Angular                | Completo enterprise                                                                                                                  | Sobre-ingeniería para equipo pequeño                                        | Descartada    |
 
-*Justificación funcional:* vistas orientadas a productividad con árboles y tablas densas; SSR + virtualización para `M-02`; pestañas de ficha como rutas anidadas con `searchParams` (compartibles).
+_Justificación funcional:_ vistas orientadas a productividad con árboles y tablas densas; SSR + virtualización para `M-02`; pestañas de ficha como rutas anidadas con `searchParams` (compartibles).
 
 ### 4.2 Framework backend — **NestJS 11 (monolito modular)** · D-002 🔷
 
-| Alternativa | A favor | En contra | Veredicto |
-|---|---|---|---|
-| **NestJS** | Módulos/DI alineados con límites M-xx; validación con zod/class-validator; OpenAPI (`@nestjs/swagger`); testing maduro; guards para RBAC | Más ceremonia que Fastify "a pelo" | **Propuesta** |
-| Fastify + tRPC | Menor superficie, end-to-end types | Sin módulos/DI estructurados; disciplina de límites queda al equipo; aprendizaje | Descartada para API pública (MCP necesita REST estable, no RPC) |
-| Hono | Ultraligero, agnóstico | Ecosistema joven para dominio complejo | Descartada |
-| Express | Universal | Sin estructura; mantenimiento a largo plazo | Descartada |
+| Alternativa    | A favor                                                                                                                                  | En contra                                                                        | Veredicto                                                       |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **NestJS**     | Módulos/DI alineados con límites M-xx; validación con zod/class-validator; OpenAPI (`@nestjs/swagger`); testing maduro; guards para RBAC | Más ceremonia que Fastify "a pelo"                                               | **Propuesta**                                                   |
+| Fastify + tRPC | Menor superficie, end-to-end types                                                                                                       | Sin módulos/DI estructurados; disciplina de límites queda al equipo; aprendizaje | Descartada para API pública (MCP necesita REST estable, no RPC) |
+| Hono           | Ultraligero, agnóstico                                                                                                                   | Ecosistema joven para dominio complejo                                           | Descartada                                                      |
+| Express        | Universal                                                                                                                                | Sin estructura; mantenimiento a largo plazo                                      | Descartada                                                      |
 
-*Justificación funcional:* el monolito modular *obliga* a respetar los límites M-xx (módulos NestJS con APIs internas explícitas), cumpliendo §7 "Evalúa inicialmente una arquitectura modular" y evitando microservicios prematuros.
+_Justificación funcional:_ el monolito modular _obliga_ a respetar los límites M-xx (módulos NestJS con APIs internas explícitas), cumpliendo §7 "Evalúa inicialmente una arquitectura modular" y evitando microservicios prematuros.
 
 ### 4.3 Base de datos — **PostgreSQL 16** · D-003 ✅ (confirmada por prompt §7)
 
@@ -85,33 +85,33 @@ Extensiones: `pgcrypto`/`uuid-ossp` (uuidv7 vía aplicación), `ltree` (árbol),
 
 ### 4.4 ORM / acceso SQL — **Drizzle ORM** · D-004 🔷
 
-| Alternativa | A favor | En contra | Veredicto |
-|---|---|---|---|
-| **Drizzle** | SQL-first (predecible para ltree/CTE), tipado estricto sin generación de cliente, migraciones versionadas en SQL (revisables en PR), ligero | Menos "magia"; joins explícitos | **Propuesta** |
-| Prisma | Mejor DX inicial, Studio | Abstracción sobre SQL dificulta ltree/CTE/recursivas; migraciones menos auditables; N+1 silencioso | Descartada |
-| Kysely | Query builder impecable, cero magia | Sin capa de esquema/migración integrada (añadir `kysely-ctl`); más piezas | Alternativa válida si Drizzle no encaja en POC |
-| SQL crudo (pg) | Control total | Pierde tipado y productividad en CRUD masivo | Descartada |
+| Alternativa    | A favor                                                                                                                                     | En contra                                                                                          | Veredicto                                      |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| **Drizzle**    | SQL-first (predecible para ltree/CTE), tipado estricto sin generación de cliente, migraciones versionadas en SQL (revisables en PR), ligero | Menos "magia"; joins explícitos                                                                    | **Propuesta**                                  |
+| Prisma         | Mejor DX inicial, Studio                                                                                                                    | Abstracción sobre SQL dificulta ltree/CTE/recursivas; migraciones menos auditables; N+1 silencioso | Descartada                                     |
+| Kysely         | Query builder impecable, cero magia                                                                                                         | Sin capa de esquema/migración integrada (añadir `kysely-ctl`); más piezas                          | Alternativa válida si Drizzle no encaja en POC |
+| SQL crudo (pg) | Control total                                                                                                                               | Pierde tipado y productividad en CRUD masivo                                                       | Descartada                                     |
 
-*ADR-009* del mockup referenciaba esta decisión; aquí queda **propuesta** y deberá confirmarse en Fase 1 con un spike de 2 días (árbol + relaciones polimórficas).
+_ADR-009_ del mockup referenciaba esta decisión; aquí queda **propuesta** y deberá confirmarse en Fase 1 con un spike de 2 días (árbol + relaciones polimórficas).
 
 ### 4.5 Autenticación — **better-auth (sesiones en DB) + tokens de servicio** · D-008 🔷 · PP-003/PP-004 ⏳
 
-| Alternativa | Veredicto |
-|---|---|
-| **better-auth** (email+contraseña, sesiones persistidas en PG, adapter disponible, TS-first, hooks de auditoría) | **Propuesta** |
-| Auth.js v5 | Potente pero acoplado a Next.js; queremos validez fuera de web (API, MCP CLI) | Descartada como núcleo |
-| Implementación propia | Control total, coste de seguridad alto | Descartada |
-| JWT puro sin sesiones | Revocación imposible — inaceptable para acciones de agentes | Descartada |
+| Alternativa                                                                                                      | Veredicto                                                                     |
+| ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **better-auth** (email+contraseña, sesiones persistidas en PG, adapter disponible, TS-first, hooks de auditoría) | **Propuesta**                                                                 |
+| Auth.js v5                                                                                                       | Potente pero acoplado a Next.js; queremos validez fuera de web (API, MCP CLI) | Descartada como núcleo |
+| Implementación propia                                                                                            | Control total, coste de seguridad alto                                        | Descartada             |
+| JWT puro sin sesiones                                                                                            | Revocación imposible — inaceptable para acciones de agentes                   | Descartada             |
 
 Humanos: sesión server-side (`HttpOnly`, `SameSite=Lax`, rotación cada 7 días). Agentes/integraciones: **service token** por producto (hash en DB, scopes, expiración, revocación, rate-limit). Autorización: Guards NestJS + verificación `product_id` + `permissions` por rol; defensa en profundidad: `WHERE product_id = $1` siempre; RLS como endurecimiento opcional Fase 2+ (PP-009-análoga no bloquea v1).
 
 ### 4.6 Editor Markdown — **CodeMirror 6 + remark/rehype preview** · D-012 🔷
 
-| Alternativa | Veredicto |
-|---|---|
+| Alternativa                                 | Veredicto                                                                                                                                                                           |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **CodeMirror 6 + vista previa renderizada** | **Propuesta** — Markdown explícito > WYSIWYG para specs técnicos; bundle menor; licencia MIT; extensible (lint, hover de códigos `PANT-02` con preview de la ficha — diferenciador) |
-| TipTap (WYSIWYG sobre ProseMirror) | Excelente pero WYSIWYG oculta la fuente; más peso; reconsiderable si PP-005 lo pide |
-| Milkdown | Middle-ground ProseMirror+Markdown; menos maduro |
+| TipTap (WYSIWYG sobre ProseMirror)          | Excelente pero WYSIWYG oculta la fuente; más peso; reconsiderable si PP-005 lo pide                                                                                                 |
+| Milkdown                                    | Middle-ground ProseMirror+Markdown; menos maduro                                                                                                                                    |
 
 Adjuntos/diagramas: storage S3-compatible; en desarrollo, filesystem en `./data/uploads` con misma interfaz `StoragePort` (S3 SDK) → MinIO en Compose para paridad.
 
@@ -167,13 +167,13 @@ packages/ui ◀── web (y Storybook ligero opcional)
 
 ## 7. Rendimiento y escalabilidad previstos
 
-| Escenario | Diseño |
-|---|---|
-| Árbol de 5.000 nodos | SSR + `ltree` indexado + virtualización cliente (`@tanstack/virtual`) |
-| Búsqueda full-text | `tsvector` español + `pg_trgm`, índice GIN, "did you mean" |
+| Escenario                   | Diseño                                                                               |
+| --------------------------- | ------------------------------------------------------------------------------------ |
+| Árbol de 5.000 nodos        | SSR + `ltree` indexado + virtualización cliente (`@tanstack/virtual`)                |
+| Búsqueda full-text          | `tsvector` español + `pg_trgm`, índice GIN, "did you mean"                           |
 | Relaciones "qué afecta a X" | Índice `(target_kind, target_id)`; resolución en un solo SELECT con UNION ALL tipado |
-| Timeline de producto | Paginación cursor sobre `activity_log(product_id, created_at DESC)` |
-| 50 usuarios/producto | Stateless API (2 réplicas detrás de caddy), sesiones en PG, sin affinity |
+| Timeline de producto        | Paginación cursor sobre `activity_log(product_id, created_at DESC)`                  |
+| 50 usuarios/producto        | Stateless API (2 réplicas detrás de caddy), sesiones en PG, sin affinity             |
 
 ## 8. Riesgos tecnológicos principales
 

@@ -8,9 +8,7 @@ const items: TreeItem[] = [
     label: 'Módulo QA',
     code: 'MOD-01',
     typeColor: '#6366f1',
-    children: [
-      { id: 'pant', label: 'Pantalla QA', code: 'PANT-101', typeColor: '#0ea5e9' },
-    ],
+    children: [{ id: 'pant', label: 'Pantalla QA', code: 'PANT-101', typeColor: '#0ea5e9' }],
   },
   { id: 'otro', label: 'Otro', code: 'OTR-01' },
 ];

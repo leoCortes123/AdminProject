@@ -39,20 +39,20 @@ Cambio respecto a la secuencia inicial del prompt: se adelanta **6a (API de inte
 
 **Entregables y tareas verificables:**
 
-| ID | Tarea | Tam | Dep | Prioridad | Criterio de aceptación |
-|---|---|---|---|---|---|
-| F1-T01 | `git init`, `.gitignore`, estructura pnpm+Turborepo, Node 22, TS strict, ESLint+Prettier | M | — | P0 | `pnpm build && pnpm lint && pnpm typecheck` verde en CI vacío |
-| F1-T02 | `packages/db`: Drizzle + PG16 + `migrate` + migración 001 (org, users, roles, permissions, products, product_members, node_types, product_nodes ltree, activity_log) | L | T01 | P0 | Migración up/down reversible; seed idempotente (`seed:run`) |
-| F1-T03 | `packages/shared`: zod base, errores RFC 9457, tipos de dominio (NodeCode branded, Result) | M | T01 | P0 | Tipos consumibles por web y api sin ciclos |
-| F1-T04 | `apps/api`: bootstrap NestJS, health, config (`@nestjs/config` + validación env), logger pino, módulo `iam` (better-auth email+contraseña, sesiones en PG, cookies) | L | T02,T03 | P0 | Login/logout funcional; sesión revocable; cookie HttpOnly |
-| F1-T05 | RBAC: roles fijos seed (admin_global, admin_product, collaborator, viewer), permisos granulares, `@Permissions()` guard, `productGuard` (product_id) | M | T04 | P0 | 403 sistemático sin permiso; org-admin bypass documentado |
-| F1-T06 | `products` CRUD + creación compuesta (seed de tipos de nodo, estados, MCP integration disabled) + invitación de miembros | M | T05 | P0 | Crear producto devuelve espacio listo; 2 productos no se cruzan |
-| F1-T07 | `product_nodes`: CRUD, `move` (transaction + validación ciclo + recompute ltree), `duplicate` (subárbol, nuevos códigos), `deactivate` (soft-delete) | L | T06 | P0 | Move entre ramas conserva hijos; código duplicado rechazado con 409 |
-| F1-T08 | `apps/web`: Next.js App Router + layout (sidebar+topbar del mockup), login, selector de contexto, Productos, Resumen skeleton, árbol funcional (read-only) + ficha vacía | XL | T07 | P0 | Navegación completa keyboard-accessible; Ctrl+K navega a vistas |
-| F1-T09 | `packages/ui`: Tree, DataTable, Pill, Tabs, EmptyState, CommandPalette (portados de `muckup/`, con tests de componente) | L | T08 | P1 | Storybook ligero opcional; componentes cubiertos ≥70% |
-| F1-T10 | CI GitHub Actions: lint, typecheck, unit, integration (PG service), e2e (Playwright chromium), build imágenes | M | T02 | P0 | Badge verde; deploy previo a staging manual |
-| F1-T11 | ADR-001..005 (monorepo, NestJS, Drizzle, better-auth, ltree) en `docs/adr/` | M | — | P1 | ADRs enlazan alternativas (sección "Alternativas") |
-| F1-T12 | Seed demo: 3 productos ficticios (versión reducida del mockup) + script `pnpm demo` | S | T06,T07 | P1 | Clonar → `pnpm demo` → app usable en 5 min |
+| ID     | Tarea                                                                                                                                                                    | Tam | Dep     | Prioridad | Criterio de aceptación                                              |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --- | ------- | --------- | ------------------------------------------------------------------- |
+| F1-T01 | `git init`, `.gitignore`, estructura pnpm+Turborepo, Node 22, TS strict, ESLint+Prettier                                                                                 | M   | —       | P0        | `pnpm build && pnpm lint && pnpm typecheck` verde en CI vacío       |
+| F1-T02 | `packages/db`: Drizzle + PG16 + `migrate` + migración 001 (org, users, roles, permissions, products, product_members, node_types, product_nodes ltree, activity_log)     | L   | T01     | P0        | Migración up/down reversible; seed idempotente (`seed:run`)         |
+| F1-T03 | `packages/shared`: zod base, errores RFC 9457, tipos de dominio (NodeCode branded, Result)                                                                               | M   | T01     | P0        | Tipos consumibles por web y api sin ciclos                          |
+| F1-T04 | `apps/api`: bootstrap NestJS, health, config (`@nestjs/config` + validación env), logger pino, módulo `iam` (better-auth email+contraseña, sesiones en PG, cookies)      | L   | T02,T03 | P0        | Login/logout funcional; sesión revocable; cookie HttpOnly           |
+| F1-T05 | RBAC: roles fijos seed (admin_global, admin_product, collaborator, viewer), permisos granulares, `@Permissions()` guard, `productGuard` (product_id)                     | M   | T04     | P0        | 403 sistemático sin permiso; org-admin bypass documentado           |
+| F1-T06 | `products` CRUD + creación compuesta (seed de tipos de nodo, estados, MCP integration disabled) + invitación de miembros                                                 | M   | T05     | P0        | Crear producto devuelve espacio listo; 2 productos no se cruzan     |
+| F1-T07 | `product_nodes`: CRUD, `move` (transaction + validación ciclo + recompute ltree), `duplicate` (subárbol, nuevos códigos), `deactivate` (soft-delete)                     | L   | T06     | P0        | Move entre ramas conserva hijos; código duplicado rechazado con 409 |
+| F1-T08 | `apps/web`: Next.js App Router + layout (sidebar+topbar del mockup), login, selector de contexto, Productos, Resumen skeleton, árbol funcional (read-only) + ficha vacía | XL  | T07     | P0        | Navegación completa keyboard-accessible; Ctrl+K navega a vistas     |
+| F1-T09 | `packages/ui`: Tree, DataTable, Pill, Tabs, EmptyState, CommandPalette (portados de `muckup/`, con tests de componente)                                                  | L   | T08     | P1        | Storybook ligero opcional; componentes cubiertos ≥70%               |
+| F1-T10 | CI GitHub Actions: lint, typecheck, unit, integration (PG service), e2e (Playwright chromium), build imágenes                                                            | M   | T02     | P0        | Badge verde; deploy previo a staging manual                         |
+| F1-T11 | ADR-001..005 (monorepo, NestJS, Drizzle, better-auth, ltree) en `docs/adr/`                                                                                              | M   | —       | P1        | ADRs enlazan alternativas (sección "Alternativas")                  |
+| F1-T12 | Seed demo: 3 productos ficticios (versión reducida del mockup) + script `pnpm demo`                                                                                      | S   | T06,T07 | P1        | Clonar → `pnpm demo` → app usable en 5 min                          |
 
 **Criterios de aceptación de fase:** login real; crear 2 productos aislados; árbol operativo (move/duplicate/deactivate con ltree íntegro — probado por fuzz de 1.000 movimientos aleatorios); CI verde; demo seeds; cero deuda de tipado (`strict` limpio); time-to-interactive < 1.5 s en Productos.
 **Riesgos:** R-03 (alcance), R-07 (better-auth novelidad) — ver [09](09-riesgos-y-decisiones.md).
@@ -66,17 +66,17 @@ Cambio respecto a la secuencia inicial del prompt: se adelanta **6a (API de inte
 **Pantallas:** Documentación (lista + preview + versiones), ficha → pestaña Documentación funcional, editor (CodeMirror + preview).
 **API:** `/documents*`, `/documents/:id/versions*`, `/attachments*`, `/search?kinds=document`.
 
-| ID | Tarea | Tam | Dep | Pri | Criterio de aceptación |
-|---|---|---|---|---|---|
-| F2-T01 | Esquema content_items/item_versions/document_types/item_node_links + migración 002 + seed de 14 tipos (13 + adr) | M | F1 | P0 | Up/down OK; seed idempotente |
-| F2-T02 | CRUD documents con estados (draft/in_review/published), transiciones controladas y publicación solo con `docs:publish` | L | T01 | P0 | Publicar sin permiso → 403; versión publicada inmutable |
-| F2-T03 | Versionado: `item_versions` append-only; publish crea versión; diff de versiones (jsdiff en cliente) | M | T02 | P0 | N versiones conservadas; diff visible; UNIQUE(item,version) |
-| F2-T04 | Editor CodeMirror 6 + preview remark/rehype (sanitizado con rehype-sanitize) + autosave local (debounce) | L | T02 | P1 | Preview < 100 ms; no XSS por HTML incrustado |
-| F2-T05 | Adjuntos: `StoragePort` (FS en dev, S3 SDK), validación MIME+size+SVG sanitizado, `Attachment` header | M | T01 | P1 | Subida a nodo; rechazo de .svg malicioso (test) |
-| F2-T06 | Vinculación doc↔nodo y doc↔doc vía `relations` (triggers activos para kinds item/node) | M | T01 | P0 | Relación a nodo inexistente → 422/400 con problem+json |
-| F2-T07 | Búsqueda global v1 (FTS español + códigos) + endpoint `/search` | M | T02 | P1 | "PANT-02" y "asignación" encuentran el documento |
-| F2-T08 | UI Documentación (grillas del mockup): filtros, búsqueda, diff, timeline de versiones | L | T04,T06 | P0 | Paridad funcional con mockup/vista docs |
-| F2-T09 | Pruebas: versionado concurrente (409 con expectedVersion), publicación, adjuntos, tenant-escape en docs | M | T02..T06 | P0 | Suite verde en CI |
+| ID     | Tarea                                                                                                                  | Tam | Dep      | Pri | Criterio de aceptación                                      |
+| ------ | ---------------------------------------------------------------------------------------------------------------------- | --- | -------- | --- | ----------------------------------------------------------- |
+| F2-T01 | Esquema content_items/item_versions/document_types/item_node_links + migración 002 + seed de 14 tipos (13 + adr)       | M   | F1       | P0  | Up/down OK; seed idempotente                                |
+| F2-T02 | CRUD documents con estados (draft/in_review/published), transiciones controladas y publicación solo con `docs:publish` | L   | T01      | P0  | Publicar sin permiso → 403; versión publicada inmutable     |
+| F2-T03 | Versionado: `item_versions` append-only; publish crea versión; diff de versiones (jsdiff en cliente)                   | M   | T02      | P0  | N versiones conservadas; diff visible; UNIQUE(item,version) |
+| F2-T04 | Editor CodeMirror 6 + preview remark/rehype (sanitizado con rehype-sanitize) + autosave local (debounce)               | L   | T02      | P1  | Preview < 100 ms; no XSS por HTML incrustado                |
+| F2-T05 | Adjuntos: `StoragePort` (FS en dev, S3 SDK), validación MIME+size+SVG sanitizado, `Attachment` header                  | M   | T01      | P1  | Subida a nodo; rechazo de .svg malicioso (test)             |
+| F2-T06 | Vinculación doc↔nodo y doc↔doc vía `relations` (triggers activos para kinds item/node)                                 | M   | T01      | P0  | Relación a nodo inexistente → 422/400 con problem+json      |
+| F2-T07 | Búsqueda global v1 (FTS español + códigos) + endpoint `/search`                                                        | M   | T02      | P1  | "PANT-02" y "asignación" encuentran el documento            |
+| F2-T08 | UI Documentación (grillas del mockup): filtros, búsqueda, diff, timeline de versiones                                  | L   | T04,T06  | P0  | Paridad funcional con mockup/vista docs                     |
+| F2-T09 | Pruebas: versionado concurrente (409 con expectedVersion), publicación, adjuntos, tenant-escape en docs                | M   | T02..T06 | P0  | Suite verde en CI                                           |
 
 **Criterios de aceptación de fase:** publicar DOC v1→v2 y ver diff; 13 tipos operativos; doc a N nodos visible en ambos; búsqueda devuelve resultados; publicación requiere permiso; adjunto servido de forma segura.
 **Riesgos:** sanitización Markdown (R-06), permisos docs granulares (R-05).
@@ -90,17 +90,17 @@ Cambio respecto a la secuencia inicial del prompt: se adelanta **6a (API de inte
 **Pantallas:** Tareas (árbol/tabla/kanban + filtros), Incidencias (maestro-detalle), ficha → pestañas Tareas/Incidencias funcionales.
 **API:** `/tasks*`, `/tasks/:id/status`, `/tasks/:id/dependencies`, `/issues*`, `/issues/:id/resolve`, `/comments*`.
 
-| ID | Tarea | Tam | Dep | Pri | Criterio |
-|---|---|---|---|---|---|
-| F3-T01 | Esquema tasks/issues/workflow_states/state_transitions/comments + seed estados por defecto + migración 003 | M | F1 | P0 | Transiciones default sembradas; issue scope con workflow propio |
-| F3-T02 | CRUD tareas + criterios de aceptación (checklist jsonb) + estimación + due date + assignee | M | T01 | P0 | CRUD completo validado zod |
-| F3-T03 | Motor de transiciones: `canTransition(scope, from, to, permissions)` puro + aplicación a tasks/issues | M | T01 | P0 | Transición no declarada → 409 con detalle |
-| F3-T04 | Dependencias task↔task (`blocks`/`is_blocked_by`) con detección de ciclos y `get_dependencies` interno | M | T02 | P1 | Ciclo rechazado con error legible |
-| F3-T05 | Relaciones task↔node y task↔doc (relations + triggers) + "crear tarea desde ficha" | M | T02 | P0 | N nodos por tarea; visible en pestañas de ambos |
-| F3-T06 | UI Tareas: 3 vistas conmutables (tree agrupado por nodo, tabla ordenable, kanban DnD con `@dnd-kit`) + filtros URL-driven | L | T05, F1-T09 | P0 | Mismo dataset, 3 representaciones; estado en query params |
-| F3-T07 | UI Incidencias maestro-detalle (esperado/observado/pasos/evidencias/vínculos) | M | T02 | P0 | Paridad con mockup |
-| F3-T08 | Comentarios con menciones (`@usuario`) y timeline humana | M | T02 | P1 | Mencionar notifica (activity + badge) |
-| F3-T09 | Pruebas: transiciones inválidas, kanban DnD (Playwright), permisos, dependencias cíclicas, tenant-escape | M | T02..T06 | P0 | Suite verde |
+| ID     | Tarea                                                                                                                     | Tam | Dep         | Pri | Criterio                                                        |
+| ------ | ------------------------------------------------------------------------------------------------------------------------- | --- | ----------- | --- | --------------------------------------------------------------- |
+| F3-T01 | Esquema tasks/issues/workflow_states/state_transitions/comments + seed estados por defecto + migración 003                | M   | F1          | P0  | Transiciones default sembradas; issue scope con workflow propio |
+| F3-T02 | CRUD tareas + criterios de aceptación (checklist jsonb) + estimación + due date + assignee                                | M   | T01         | P0  | CRUD completo validado zod                                      |
+| F3-T03 | Motor de transiciones: `canTransition(scope, from, to, permissions)` puro + aplicación a tasks/issues                     | M   | T01         | P0  | Transición no declarada → 409 con detalle                       |
+| F3-T04 | Dependencias task↔task (`blocks`/`is_blocked_by`) con detección de ciclos y `get_dependencies` interno                    | M   | T02         | P1  | Ciclo rechazado con error legible                               |
+| F3-T05 | Relaciones task↔node y task↔doc (relations + triggers) + "crear tarea desde ficha"                                        | M   | T02         | P0  | N nodos por tarea; visible en pestañas de ambos                 |
+| F3-T06 | UI Tareas: 3 vistas conmutables (tree agrupado por nodo, tabla ordenable, kanban DnD con `@dnd-kit`) + filtros URL-driven | L   | T05, F1-T09 | P0  | Mismo dataset, 3 representaciones; estado en query params       |
+| F3-T07 | UI Incidencias maestro-detalle (esperado/observado/pasos/evidencias/vínculos)                                             | M   | T02         | P0  | Paridad con mockup                                              |
+| F3-T08 | Comentarios con menciones (`@usuario`) y timeline humana                                                                  | M   | T02         | P1  | Mencionar notifica (activity + badge)                           |
+| F3-T09 | Pruebas: transiciones inválidas, kanban DnD (Playwright), permisos, dependencias cíclicas, tenant-escape                  | M   | T02..T06    | P0  | Suite verde                                                     |
 
 **Criterios de aceptación:** crear tarea desde ficha → aparece en kanban global; arrastrar entre columnas respeta transiciones; incidencia → tarea correctiva → vinculada; búsqueda `PANT-02` filtra tareas.
 **Riesgos:** R-04 (kanban DnD fragilidad), R-03.
@@ -114,16 +114,16 @@ Cambio respecto a la secuencia inicial del prompt: se adelanta **6a (API de inte
 **Pantallas:** Modificaciones (tabla), Trazabilidad (7 consultas + grafo), ficha → Relaciones + Historial funcionales, agente (esqueleto).
 **API:** `/relations*`, `/trace/*` (7), `/changes*`, `/nodes/:id/history`, `/nodes/:id/changes`.
 
-| ID | Tarea | Tam | Dep | Pri | Criterio |
-|---|---|---|---|---|---|
-| F4-T01 | Esquema changes/test_cases/test_results + migración 004 | M | F2,F3 | P0 | Up/down OK |
-| F4-T02 | Endurecer `relations`: triggers de existencia por kind (node/item/task/issue/change/test_case), anti-auto-relación, UNIQUE anti-dup | M | F2 | P0 | Insertar relación a elemento de otro producto → bloqueada (test) |
-| F4-T03 | CRUD changes (proposed/executed) + refs Git + vínculo incidencias resueltas (`resolves`) con cierre atómico de INC | L | T01,T02 | P0 | MOD resuelve INC → ambas actualizadas en una transacción |
-| F4-T04 | Servicio de historia por elemento (nodos): unión ordenada de activity_log + item_versions + changes + status changes | M | T03 | P0 | Timeline consistente humano/agente |
-| F4-T05 | 7 endpoints canónicos + índices + límite de profundidad ≤3 | M | T02 | P0 | Latencia p95 < 300 ms con 100k relations (seeds sintéticos) |
-| F4-T06 | UI Trazabilidad: chips de consulta + tabla resultado + grafo SVG (clickeable) + cabeceras salientes/entrantes | L | T05 | P0 | Paridad con mockup/vista trazabilidad |
-| F4-T07 | Job semanal `relations-sweep` (detecta huérfanos/ciclos residuales; métrica) | S | T02 | P2 | Informe «0 huérfanos» en staging |
-| F4-T08 | Pruebas property-based: generador de operaciones aleatorias sobre relations; invariante cero huérfanos tras N ops | M | T02 | P0 | 1.000 runs sin violación |
+| ID     | Tarea                                                                                                                               | Tam | Dep     | Pri | Criterio                                                         |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------- | --- | ------- | --- | ---------------------------------------------------------------- |
+| F4-T01 | Esquema changes/test_cases/test_results + migración 004                                                                             | M   | F2,F3   | P0  | Up/down OK                                                       |
+| F4-T02 | Endurecer `relations`: triggers de existencia por kind (node/item/task/issue/change/test_case), anti-auto-relación, UNIQUE anti-dup | M   | F2      | P0  | Insertar relación a elemento de otro producto → bloqueada (test) |
+| F4-T03 | CRUD changes (proposed/executed) + refs Git + vínculo incidencias resueltas (`resolves`) con cierre atómico de INC                  | L   | T01,T02 | P0  | MOD resuelve INC → ambas actualizadas en una transacción         |
+| F4-T04 | Servicio de historia por elemento (nodos): unión ordenada de activity_log + item_versions + changes + status changes                | M   | T03     | P0  | Timeline consistente humano/agente                               |
+| F4-T05 | 7 endpoints canónicos + índices + límite de profundidad ≤3                                                                          | M   | T02     | P0  | Latencia p95 < 300 ms con 100k relations (seeds sintéticos)      |
+| F4-T06 | UI Trazabilidad: chips de consulta + tabla resultado + grafo SVG (clickeable) + cabeceras salientes/entrantes                       | L   | T05     | P0  | Paridad con mockup/vista trazabilidad                            |
+| F4-T07 | Job semanal `relations-sweep` (detecta huérfanos/ciclos residuales; métrica)                                                        | S   | T02     | P2  | Informe «0 huérfanos» en staging                                 |
+| F4-T08 | Pruebas property-based: generador de operaciones aleatorias sobre relations; invariante cero huérfanos tras N ops                   | M   | T02     | P0  | 1.000 runs sin violación                                         |
 
 **Criterios de aceptación:** INC-087 → TAR → MOD-031 (executed) → verificada con historia completa visible por pantalla; las 7 consultas canónicas documentadas y probadas; grafo navegable.
 **Riesgos:** R-01 (modelo polimórfico) — mitigado por triggers + property tests.
@@ -135,14 +135,14 @@ Cambio respecto a la secuencia inicial del prompt: se adelanta **6a (API de inte
 **Dependencias:** F2 (FTS), F3, F4 (relaciones para cobertura).
 **Pantallas:** Seguimiento (actividad, avance por módulo/producto, sin doc, sin pruebas, bloqueadas, modificaciones recientes) + `/search` global (paleta usa el mismo índice).
 
-| ID | Tarea | Tam | Dep | Pri | Criterio |
-|---|---|---|---|---|---|
-| F5-T01 | Vistas materializadas `product_overview` (avance por módulo/producto) + refresh incremental | M | F4 | P0 | Datos correctos tras completar 1 tarea (test e2e) |
-| F5-T02 | Cobertura documental y de pruebas por nodo (ausencia de relations) | M | F4 | P0 | Listados "sin doc" / "sin pruebas" exactos (test con fixtures) |
-| F5-T03 | Activity feed cursor-paginado (humano/agente) + filtros | S | F4 | P0 | 50 eventos/página; orden estable |
-| F5-T04 | UI Seguimiento (listas compactas del mockup) + enlaces profundos | M | T01..T03 | P0 | Paridad mockup/vista seguimiento |
-| F5-T05 | Búsqueda global completa (docs/nodos/tareas/issues/cambios) + ranking + sin-resultados útil | M | F2-T07 | P1 | "PANT-02" y texto libre responden < 100 ms |
-| F5-T06 | Informes exportables (CSV de tareas/issues/cambios) para comité | S | T01 | P2 | CSV válido Excel-ES |
+| ID     | Tarea                                                                                       | Tam | Dep      | Pri | Criterio                                                       |
+| ------ | ------------------------------------------------------------------------------------------- | --- | -------- | --- | -------------------------------------------------------------- |
+| F5-T01 | Vistas materializadas `product_overview` (avance por módulo/producto) + refresh incremental | M   | F4       | P0  | Datos correctos tras completar 1 tarea (test e2e)              |
+| F5-T02 | Cobertura documental y de pruebas por nodo (ausencia de relations)                          | M   | F4       | P0  | Listados "sin doc" / "sin pruebas" exactos (test con fixtures) |
+| F5-T03 | Activity feed cursor-paginado (humano/agente) + filtros                                     | S   | F4       | P0  | 50 eventos/página; orden estable                               |
+| F5-T04 | UI Seguimiento (listas compactas del mockup) + enlaces profundos                            | M   | T01..T03 | P0  | Paridad mockup/vista seguimiento                               |
+| F5-T05 | Búsqueda global completa (docs/nodos/tareas/issues/cambios) + ranking + sin-resultados útil | M   | F2-T07   | P1  | "PANT-02" y texto libre responden < 100 ms                     |
+| F5-T06 | Informes exportables (CSV de tareas/issues/cambios) para comité                             | S   | T01      | P2  | CSV válido Excel-ES                                            |
 
 **Criterios de aceptación:** un producto con datos muestra avance real; "elementos sin documentación" acierta; búsqueda global usable desde paleta; sin dashboard de tarjetas (revisión UX contra mockup).
 **Riesgos:** R-09 (métrica de avance subjetiva → conteo simple, documentado).

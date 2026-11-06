@@ -124,13 +124,20 @@ export function CommandPalette({
           onKeyDown={onKeyDown}
           placeholder={placeholder}
           aria-label={placeholder}
-          aria-activedescendant={filtered[clampedIndex] ? `palette-item-${filtered[clampedIndex].id}` : undefined}
+          aria-activedescendant={
+            filtered[clampedIndex] ? `palette-item-${filtered[clampedIndex].id}` : undefined
+          }
           autoComplete="off"
           spellCheck={false}
         />
         <div className="palette-list" role="listbox" aria-label="Resultados">
           {filtered.length === 0 ? (
-            <div className="palette-item" role="option" aria-selected="false" style={{ color: 'var(--ink-3)' }}>
+            <div
+              className="palette-item"
+              role="option"
+              aria-selected="false"
+              style={{ color: 'var(--ink-3)' }}
+            >
               {emptyLabel}
             </div>
           ) : (

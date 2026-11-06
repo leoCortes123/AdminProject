@@ -54,33 +54,162 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   viewer: ['docs:read'],
 };
 
-const NODE_TYPES: Array<{ key: string; label: string; color: string; icon: string; isStructural: boolean; position: number }> = [
-  { key: 'modulo', label: 'Módulo', color: '#6366f1', icon: 'box', isStructural: true, position: 0 },
-  { key: 'submodulo', label: 'Submódulo', color: '#8b5cf6', icon: 'boxes', isStructural: true, position: 1 },
-  { key: 'pantalla', label: 'Pantalla', color: '#0ea5e9', icon: 'monitor', isStructural: true, position: 2 },
-  { key: 'pestana', label: 'Pestaña', color: '#06b6d4', icon: 'columns-2', isStructural: true, position: 3 },
-  { key: 'componente', label: 'Componente', color: '#10b981', icon: 'puzzle', isStructural: false, position: 4 },
-  { key: 'proceso', label: 'Proceso', color: '#f59e0b', icon: 'workflow', isStructural: false, position: 5 },
-  { key: 'servicio', label: 'Servicio', color: '#f97316', icon: 'server', isStructural: false, position: 6 },
-  { key: 'otro', label: 'Otro', color: '#64748b', icon: 'circle-dashed', isStructural: false, position: 7 },
+const NODE_TYPES: Array<{
+  key: string;
+  label: string;
+  color: string;
+  icon: string;
+  isStructural: boolean;
+  position: number;
+}> = [
+  {
+    key: 'modulo',
+    label: 'Módulo',
+    color: '#6366f1',
+    icon: 'box',
+    isStructural: true,
+    position: 0,
+  },
+  {
+    key: 'submodulo',
+    label: 'Submódulo',
+    color: '#8b5cf6',
+    icon: 'boxes',
+    isStructural: true,
+    position: 1,
+  },
+  {
+    key: 'pantalla',
+    label: 'Pantalla',
+    color: '#0ea5e9',
+    icon: 'monitor',
+    isStructural: true,
+    position: 2,
+  },
+  {
+    key: 'pestana',
+    label: 'Pestaña',
+    color: '#06b6d4',
+    icon: 'columns-2',
+    isStructural: true,
+    position: 3,
+  },
+  {
+    key: 'componente',
+    label: 'Componente',
+    color: '#10b981',
+    icon: 'puzzle',
+    isStructural: false,
+    position: 4,
+  },
+  {
+    key: 'proceso',
+    label: 'Proceso',
+    color: '#f59e0b',
+    icon: 'workflow',
+    isStructural: false,
+    position: 5,
+  },
+  {
+    key: 'servicio',
+    label: 'Servicio',
+    color: '#f97316',
+    icon: 'server',
+    isStructural: false,
+    position: 6,
+  },
+  {
+    key: 'otro',
+    label: 'Otro',
+    color: '#64748b',
+    icon: 'circle-dashed',
+    isStructural: false,
+    position: 7,
+  },
 ];
 
 // 13 tipos documentales del prompt §5.3 (decisión arquitectónica codificada como `adr`)
-const DOCUMENT_TYPES: Array<{ key: string; label: string; description: string; position: number }> = [
-  { key: 'spec', label: 'Especificación funcional', description: 'Comportamiento funcional de módulos y pantallas', position: 0 },
-  { key: 'screen_desc', label: 'Descripción de pantalla', description: 'Layout, acciones y estados de una pantalla', position: 1 },
-  { key: 'use_case', label: 'Caso de uso', description: 'Actor, objetivo, flujo principal y alternativos', position: 2 },
-  { key: 'workflow', label: 'Flujo de trabajo', description: 'Secuencia de pasos de un proceso', position: 3 },
-  { key: 'business_rule', label: 'Regla de negocio', description: 'Restricción o política de dominio', position: 4 },
-  { key: 'req_functional', label: 'Requisito funcional', description: 'Capacidad que el sistema debe ofrecer', position: 5 },
-  { key: 'req_non_functional', label: 'Requisito no funcional', description: 'Rendimiento, seguridad, usabilidad…', position: 6 },
-  { key: 'data_model', label: 'Modelo de datos', description: 'Entidades, atributos y relaciones', position: 7 },
-  { key: 'api_contract', label: 'Contrato API', description: 'Endpoints, esquemas y errores', position: 8 },
-  { key: 'tech_spec', label: 'Especificación técnica', description: 'Diseño técnico de una implementación', position: 9 },
-  { key: 'adr', label: 'Decisión arquitectónica (ADR)', description: 'Contexto, decisión y consecuencias', position: 10 },
-  { key: 'tech_manual', label: 'Manual técnico', description: 'Guía de operación y mantenimiento', position: 11 },
-  { key: 'test_doc', label: 'Documentación de pruebas', description: 'Estrategia, casos y resultados de pruebas', position: 12 },
-];
+const DOCUMENT_TYPES: Array<{ key: string; label: string; description: string; position: number }> =
+  [
+    {
+      key: 'spec',
+      label: 'Especificación funcional',
+      description: 'Comportamiento funcional de módulos y pantallas',
+      position: 0,
+    },
+    {
+      key: 'screen_desc',
+      label: 'Descripción de pantalla',
+      description: 'Layout, acciones y estados de una pantalla',
+      position: 1,
+    },
+    {
+      key: 'use_case',
+      label: 'Caso de uso',
+      description: 'Actor, objetivo, flujo principal y alternativos',
+      position: 2,
+    },
+    {
+      key: 'workflow',
+      label: 'Flujo de trabajo',
+      description: 'Secuencia de pasos de un proceso',
+      position: 3,
+    },
+    {
+      key: 'business_rule',
+      label: 'Regla de negocio',
+      description: 'Restricción o política de dominio',
+      position: 4,
+    },
+    {
+      key: 'req_functional',
+      label: 'Requisito funcional',
+      description: 'Capacidad que el sistema debe ofrecer',
+      position: 5,
+    },
+    {
+      key: 'req_non_functional',
+      label: 'Requisito no funcional',
+      description: 'Rendimiento, seguridad, usabilidad…',
+      position: 6,
+    },
+    {
+      key: 'data_model',
+      label: 'Modelo de datos',
+      description: 'Entidades, atributos y relaciones',
+      position: 7,
+    },
+    {
+      key: 'api_contract',
+      label: 'Contrato API',
+      description: 'Endpoints, esquemas y errores',
+      position: 8,
+    },
+    {
+      key: 'tech_spec',
+      label: 'Especificación técnica',
+      description: 'Diseño técnico de una implementación',
+      position: 9,
+    },
+    {
+      key: 'adr',
+      label: 'Decisión arquitectónica (ADR)',
+      description: 'Contexto, decisión y consecuencias',
+      position: 10,
+    },
+    {
+      key: 'tech_manual',
+      label: 'Manual técnico',
+      description: 'Guía de operación y mantenimiento',
+      position: 11,
+    },
+    {
+      key: 'test_doc',
+      label: 'Documentación de pruebas',
+      description: 'Estrategia, casos y resultados de pruebas',
+      position: 12,
+    },
+  ];
 
 async function seedCatalogs() {
   for (const key of ROLE_KEYS) {
@@ -116,7 +245,15 @@ const ltreeLabel = (code: string) => code.toLowerCase().replace(/-/g, '_');
 
 async function createProductWithDefaults(
   orgId: string,
-  p: { slug: string; name: string; tagline: string; status: string; techStack: string[]; color: string; icon: string },
+  p: {
+    slug: string;
+    name: string;
+    tagline: string;
+    status: string;
+    techStack: string[];
+    color: string;
+    icon: string;
+  },
 ) {
   const [product] = await sql<{ id: string }[]>`
     INSERT INTO products (org_id, slug, name, tagline, status, tech_stack, color, icon)
@@ -156,10 +293,18 @@ interface DemoNode {
   children?: DemoNode[];
 }
 
-async function insertTree(productId: string, nodes: DemoNode[], parentId: string | null, parentPath: string | null, depth: number) {
+async function insertTree(
+  productId: string,
+  nodes: DemoNode[],
+  parentId: string | null,
+  parentPath: string | null,
+  depth: number,
+) {
   let position = 0;
   for (const node of nodes) {
-    const [type] = await sql<{ id: string }[]>`SELECT id FROM node_types WHERE key = ${node.typeKey} AND product_id IS NULL`;
+    const [type] = await sql<
+      { id: string }[]
+    >`SELECT id FROM node_types WHERE key = ${node.typeKey} AND product_id IS NULL`;
     const path = parentPath ? `${parentPath}.${ltreeLabel(node.code)}` : ltreeLabel(node.code);
     const [row] = await sql<{ id: string }[]>`
       INSERT INTO product_nodes (product_id, parent_id, node_type_id, code, name, path, depth, position)
@@ -181,38 +326,79 @@ async function seedDemo() {
   const orgId = org!.id;
 
   const kanora = await createProductWithDefaults(orgId, {
-    slug: 'kanora', name: 'Kanora', tagline: 'Gestión de operaciones para retail',
-    status: 'active', techStack: ['Next.js', 'NestJS', 'PostgreSQL'], color: '#6366f1', icon: 'shopping-cart',
+    slug: 'kanora',
+    name: 'Kanora',
+    tagline: 'Gestión de operaciones para retail',
+    status: 'active',
+    techStack: ['Next.js', 'NestJS', 'PostgreSQL'],
+    color: '#6366f1',
+    icon: 'shopping-cart',
   });
   await createProductWithDefaults(orgId, {
-    slug: 'verdana', name: 'Verdana', tagline: 'Fichas clínicas para consultas',
-    status: 'in_development', techStack: ['React', 'Fastify', 'PostgreSQL'], color: '#10b981', icon: 'heart-pulse',
+    slug: 'verdana',
+    name: 'Verdana',
+    tagline: 'Fichas clínicas para consultas',
+    status: 'in_development',
+    techStack: ['React', 'Fastify', 'PostgreSQL'],
+    color: '#10b981',
+    icon: 'heart-pulse',
   });
   await createProductWithDefaults(orgId, {
-    slug: 'nucleo', name: 'Núcleo', tagline: 'Librería compartida de componentes',
-    status: 'maintenance', techStack: ['TypeScript'], color: '#f59e0b', icon: 'boxes',
+    slug: 'nucleo',
+    name: 'Núcleo',
+    tagline: 'Librería compartida de componentes',
+    status: 'maintenance',
+    techStack: ['TypeScript'],
+    color: '#f59e0b',
+    icon: 'boxes',
   });
 
   // Árbol reducido de Kanora (el completo vive en muckup/js/data.js)
-  await insertTree(kanora, [
-    { code: 'MODULO-01', name: 'Catálogo', typeKey: 'modulo', children: [
-      { code: 'PANT-01', name: 'Listado de productos', typeKey: 'pantalla' },
-      { code: 'PANT-02', name: 'Ficha de producto', typeKey: 'pantalla', children: [
-        { code: 'COMP-01', name: 'Selector de variante', typeKey: 'componente' },
-        { code: 'COMP-02', name: 'Galería de imágenes', typeKey: 'componente' },
-      ] },
-    ] },
-    { code: 'MODULO-02', name: 'Pedidos', typeKey: 'modulo', children: [
-      { code: 'PANT-03', name: 'Carrito', typeKey: 'pantalla' },
-      { code: 'PANT-04', name: 'Checkout', typeKey: 'pantalla', children: [
-        { code: 'PROC-01', name: 'Cálculo de envío', typeKey: 'proceso' },
-      ] },
-    ] },
-    { code: 'MODULO-03', name: 'Administración', typeKey: 'modulo' },
-  ], null, null, 0);
+  await insertTree(
+    kanora,
+    [
+      {
+        code: 'MODULO-01',
+        name: 'Catálogo',
+        typeKey: 'modulo',
+        children: [
+          { code: 'PANT-01', name: 'Listado de productos', typeKey: 'pantalla' },
+          {
+            code: 'PANT-02',
+            name: 'Ficha de producto',
+            typeKey: 'pantalla',
+            children: [
+              { code: 'COMP-01', name: 'Selector de variante', typeKey: 'componente' },
+              { code: 'COMP-02', name: 'Galería de imágenes', typeKey: 'componente' },
+            ],
+          },
+        ],
+      },
+      {
+        code: 'MODULO-02',
+        name: 'Pedidos',
+        typeKey: 'modulo',
+        children: [
+          { code: 'PANT-03', name: 'Carrito', typeKey: 'pantalla' },
+          {
+            code: 'PANT-04',
+            name: 'Checkout',
+            typeKey: 'pantalla',
+            children: [{ code: 'PROC-01', name: 'Cálculo de envío', typeKey: 'proceso' }],
+          },
+        ],
+      },
+      { code: 'MODULO-03', name: 'Administración', typeKey: 'modulo' },
+    ],
+    null,
+    null,
+    0,
+  );
 
   console.info('Demo OK: organización "Acme & Co" y productos kanora · verdana · nucleo.');
-  console.info('Registra el primer usuario en la app: recibirá el rol admin_global automáticamente.');
+  console.info(
+    'Registra el primer usuario en la app: recibirá el rol admin_global automáticamente.',
+  );
 }
 
 async function main() {

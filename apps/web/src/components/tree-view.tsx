@@ -29,7 +29,9 @@ function TreePage({
 
   const [activeTab, setActiveTab] = useState('resumen');
   const [typeFilter, setTypeFilter] = useState('');
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => collectExpandableIds(buildTree(nodes)));
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() =>
+    collectExpandableIds(buildTree(nodes)),
+  );
 
   // Tipos presentes (para el filtro), con conteo.
   const typeCounts = useMemo(() => {
@@ -43,9 +45,7 @@ function TreePage({
   }, [nodes]);
 
   const treeItems = useMemo<TreeItem[]>(() => {
-    const visible = typeFilter
-      ? nodes.filter((node) => node.nodeType.key === typeFilter)
-      : nodes;
+    const visible = typeFilter ? nodes.filter((node) => node.nodeType.key === typeFilter) : nodes;
     return buildTree(visible);
   }, [nodes, typeFilter]);
 
@@ -54,7 +54,8 @@ function TreePage({
     () => (typeFilter ? nodes.filter((node) => node.nodeType.key === typeFilter) : nodes),
     [nodes, typeFilter],
   );
-  const selectedNode = (selectedCode ? visibleNodes.find((node) => node.code === selectedCode) : null) ?? null;
+  const selectedNode =
+    (selectedCode ? visibleNodes.find((node) => node.code === selectedCode) : null) ?? null;
 
   // Si el filtro oculta el seleccionado, limpiar la selección.
   useEffect(() => {
@@ -85,7 +86,12 @@ function TreePage({
           </p>
         </div>
         <div className="spacer" />
-        <button type="button" className="btn btn-primary" disabled title="La edición del árbol llega en una fase posterior (la API ya lo soporta)">
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled
+          title="La edición del árbol llega en una fase posterior (la API ya lo soporta)"
+        >
           + Nuevo nodo
         </button>
       </div>
@@ -107,19 +113,42 @@ function TreePage({
                 </option>
               ))}
             </select>
-            <button className="btn btn-sm btn-ghost" type="button" onClick={() => setExpandedIds(collectExpandableIds(treeItems))}>
+            <button
+              className="btn btn-sm btn-ghost"
+              type="button"
+              onClick={() => setExpandedIds(collectExpandableIds(treeItems))}
+            >
               Expandir
             </button>
-            <button className="btn btn-sm btn-ghost" type="button" onClick={() => setExpandedIds(new Set())}>
+            <button
+              className="btn btn-sm btn-ghost"
+              type="button"
+              onClick={() => setExpandedIds(new Set())}
+            >
               Contraer
             </button>
-            <button className="btn btn-sm btn-ghost" type="button" disabled title="Disponible en una fase posterior (la API ya lo soporta)">
+            <button
+              className="btn btn-sm btn-ghost"
+              type="button"
+              disabled
+              title="Disponible en una fase posterior (la API ya lo soporta)"
+            >
               Mover
             </button>
-            <button className="btn btn-sm btn-ghost" type="button" disabled title="Disponible en una fase posterior (la API ya lo soporta)">
+            <button
+              className="btn btn-sm btn-ghost"
+              type="button"
+              disabled
+              title="Disponible en una fase posterior (la API ya lo soporta)"
+            >
               Duplicar
             </button>
-            <button className="btn btn-sm btn-danger-ghost" type="button" disabled title="Disponible en una fase posterior (la API ya lo soporta)">
+            <button
+              className="btn btn-sm btn-danger-ghost"
+              type="button"
+              disabled
+              title="Disponible en una fase posterior (la API ya lo soporta)"
+            >
               Desactivar
             </button>
           </div>
@@ -145,7 +174,13 @@ function TreePage({
               <span key={key} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <span
                   aria-hidden="true"
-                  style={{ width: 9, height: 9, borderRadius: 3, background: nodes.find((n) => n.nodeType.key === key)?.nodeType.color ?? '#94a3b8' }}
+                  style={{
+                    width: 9,
+                    height: 9,
+                    borderRadius: 3,
+                    background:
+                      nodes.find((n) => n.nodeType.key === key)?.nodeType.color ?? '#94a3b8',
+                  }}
                 />
                 {label}
               </span>
@@ -178,14 +213,26 @@ function TreePage({
                     <span>·</span>
                     <span>{pathLabel}</span>
                     <span>·</span>
-                    <Pill tone={nodeStatusTone(selectedNode.status)}>{nodeStatusLabel(selectedNode.status)}</Pill>
+                    <Pill tone={nodeStatusTone(selectedNode.status)}>
+                      {nodeStatusLabel(selectedNode.status)}
+                    </Pill>
                   </div>
                 </div>
                 <div className="ficha-actions">
-                  <button className="btn btn-sm" type="button" disabled title="Disponible en una fase posterior">
+                  <button
+                    className="btn btn-sm"
+                    type="button"
+                    disabled
+                    title="Disponible en una fase posterior"
+                  >
                     Editar
                   </button>
-                  <button className="btn btn-sm" type="button" disabled title="Historial completo llega en Fase 4 (activity_log ya registra cambios)">
+                  <button
+                    className="btn btn-sm"
+                    type="button"
+                    disabled
+                    title="Historial completo llega en Fase 4 (activity_log ya registra cambios)"
+                  >
                     Historial
                   </button>
                 </div>
@@ -206,39 +253,61 @@ function TreePage({
                     description="La descripción y los metadatos funcionales de cada elemento llegan con la Fase 2 (documentación vinculada al árbol)."
                   />
                   <dl className="kv" style={{ marginTop: 12 }}>
-                    <dt>Código</dt><dd className="mono">{selectedNode.code}</dd>
-                    <dt>Responsable</dt><dd>{selectedNode.ownerId ? selectedNode.ownerId : 'Sin asignar'}</dd>
-                    <dt>Profundidad</dt><dd>Nivel {selectedNode.depth} del árbol</dd>
-                    <dt>Posición</dt><dd>{selectedNode.position + 1}º entre hermanos</dd>
-                    <dt>Creado</dt><dd>{new Date(selectedNode.createdAt).toLocaleDateString('es-ES')}</dd>
-                    <dt>Última modificación</dt><dd>{timeAgo(selectedNode.updatedAt)}</dd>
-                    <dt>Camino</dt><dd className="mono">{selectedNode.path}</dd>
+                    <dt>Código</dt>
+                    <dd className="mono">{selectedNode.code}</dd>
+                    <dt>Responsable</dt>
+                    <dd>{selectedNode.ownerId ? selectedNode.ownerId : 'Sin asignar'}</dd>
+                    <dt>Profundidad</dt>
+                    <dd>Nivel {selectedNode.depth} del árbol</dd>
+                    <dt>Posición</dt>
+                    <dd>{selectedNode.position + 1}º entre hermanos</dd>
+                    <dt>Creado</dt>
+                    <dd>{new Date(selectedNode.createdAt).toLocaleDateString('es-ES')}</dd>
+                    <dt>Última modificación</dt>
+                    <dd>{timeAgo(selectedNode.updatedAt)}</dd>
+                    <dt>Camino</dt>
+                    <dd className="mono">{selectedNode.path}</dd>
                   </dl>
                 </div>
               )}
               {activeTab === 'funcionalidad' && (
                 <div className="tab-panel active" role="tabpanel" id="panel-funcionalidad">
-                  <EmptyState title="Sin comportamiento documentado" description="Objetivo, casos de uso, reglas de negocio y flujos llegan con la Fase 2." />
+                  <EmptyState
+                    title="Sin comportamiento documentado"
+                    description="Objetivo, casos de uso, reglas de negocio y flujos llegan con la Fase 2."
+                  />
                 </div>
               )}
               {activeTab === 'documentacion' && (
                 <div className="tab-panel active" role="tabpanel" id="panel-documentacion">
-                  <EmptyState title="0 documentos vinculados" description="La documentación (13 tipos, versionada y vinculada a este nodo) llega con la Fase 2." />
+                  <EmptyState
+                    title="0 documentos vinculados"
+                    description="La documentación (13 tipos, versionada y vinculada a este nodo) llega con la Fase 2."
+                  />
                 </div>
               )}
               {activeTab === 'tareas' && (
                 <div className="tab-panel active" role="tabpanel" id="panel-tareas">
-                  <EmptyState title="0 tareas vinculadas" description="Las tareas ligadas a este elemento llegan con la Fase 3." />
+                  <EmptyState
+                    title="0 tareas vinculadas"
+                    description="Las tareas ligadas a este elemento llegan con la Fase 3."
+                  />
                 </div>
               )}
               {activeTab === 'incidencias' && (
                 <div className="tab-panel active" role="tabpanel" id="panel-incidencias">
-                  <EmptyState title="0 incidencias vinculadas" description="Las incidencias llegan con la Fase 3." />
+                  <EmptyState
+                    title="0 incidencias vinculadas"
+                    description="Las incidencias llegan con la Fase 3."
+                  />
                 </div>
               )}
               {activeTab === 'relaciones' && (
                 <div className="tab-panel active" role="tabpanel" id="panel-relaciones">
-                  <EmptyState title="0 relaciones" description="El grafo de relaciones bidireccionales llega con la Fase 4 (trazabilidad)." />
+                  <EmptyState
+                    title="0 relaciones"
+                    description="El grafo de relaciones bidireccionales llega con la Fase 4 (trazabilidad)."
+                  />
                 </div>
               )}
               {activeTab === 'historial' && (

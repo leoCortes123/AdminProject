@@ -45,11 +45,13 @@ const columns: DataTableColumn<ProductRow>[] = [
   {
     key: 'status',
     header: 'Estado',
-    render: (row) => <Pill tone={productStatusTone(row.status)}>{productStatusLabel(row.status)}</Pill>,
+    render: (row) => (
+      <Pill tone={productStatusTone(row.status)}>{productStatusLabel(row.status)}</Pill>
+    ),
   },
-  { key: 'moduleCount', header: 'Módulos', render: (row) => (row.moduleCount ?? '—') },
-  { key: 'nodeCount', header: 'Nodos', render: (row) => (row.nodeCount ?? '—') },
-  { key: 'memberCount', header: 'Integrantes', render: (row) => (row.memberCount ?? '—') },
+  { key: 'moduleCount', header: 'Módulos', render: (row) => row.moduleCount ?? '—' },
+  { key: 'nodeCount', header: 'Nodos', render: (row) => row.nodeCount ?? '—' },
+  { key: 'memberCount', header: 'Integrantes', render: (row) => row.memberCount ?? '—' },
 ];
 
 export function ProductsTable({ rows }: { rows: ProductRow[] }) {

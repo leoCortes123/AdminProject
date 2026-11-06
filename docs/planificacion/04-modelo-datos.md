@@ -12,41 +12,41 @@
 
 ## 2. Entidades iniciales (16) → destino
 
-| Entidad del prompt | Decisión |
-|---|---|
-| products | ✅ `products` |
-| product_members | ✅ `product_members` (+ `invited_at`, `accepted_at`) |
-| product_nodes | ✅ `product_nodes` (+ `ltree path`, `deleted_at`, `code`) |
-| node_types | ✅ `node_types` (global + configurables por producto) |
-| node_relations | 🔷 Integrada en `relations` polimórfica (ver §6) — se mantienen vistas `node_relations` / `item_relations` para compatibilidad con la lista original |
-| content_items | ✅ `content_items` (supertipo documental) |
-| item_relations | 🔷 Ídem (vista sobre `relations`) |
-| item_versions | ✅ `item_versions` (inmutable) |
-| comments | ✅ `comments` (polimórfico con trigger) |
-| attachments | ✅ `attachments` |
-| users | ✅ `users` (gestionada por better-auth) |
-| roles | ✅ `roles` (4 fijos + extensible) |
-| permissions | ✅ `permissions` + `role_permissions` |
-| activity_log | ✅ `activity_log` (append-only) |
-| integrations | ✅ `integrations` |
-| agent_executions | ✅ `agent_executions` |
+| Entidad del prompt | Decisión                                                                                                                                             |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| products           | ✅ `products`                                                                                                                                        |
+| product_members    | ✅ `product_members` (+ `invited_at`, `accepted_at`)                                                                                                 |
+| product_nodes      | ✅ `product_nodes` (+ `ltree path`, `deleted_at`, `code`)                                                                                            |
+| node_types         | ✅ `node_types` (global + configurables por producto)                                                                                                |
+| node_relations     | 🔷 Integrada en `relations` polimórfica (ver §6) — se mantienen vistas `node_relations` / `item_relations` para compatibilidad con la lista original |
+| content_items      | ✅ `content_items` (supertipo documental)                                                                                                            |
+| item_relations     | 🔷 Ídem (vista sobre `relations`)                                                                                                                    |
+| item_versions      | ✅ `item_versions` (inmutable)                                                                                                                       |
+| comments           | ✅ `comments` (polimórfico con trigger)                                                                                                              |
+| attachments        | ✅ `attachments`                                                                                                                                     |
+| users              | ✅ `users` (gestionada por better-auth)                                                                                                              |
+| roles              | ✅ `roles` (4 fijos + extensible)                                                                                                                    |
+| permissions        | ✅ `permissions` + `role_permissions`                                                                                                                |
+| activity_log       | ✅ `activity_log` (append-only)                                                                                                                      |
+| integrations       | ✅ `integrations`                                                                                                                                    |
+| agent_executions   | ✅ `agent_executions`                                                                                                                                |
 
 ## 3. Entidades adicionales identificadas (12)
 
-| Nueva entidad | Por qué es necesaria |
-|---|---|
-| `document_types` | Los 13 tipos documentales + `adr` como catálogo configurable (no enum) — §5.3 pide tipos "considerados", no cerrados |
-| `workflow_states` | Estados configurables de tareas/incidencias por producto (§5.4) — no cabe en enum fijo |
-| `state_transitions` | Transiciones controladas con origen/destino y permiso requerido — requisito explícito §5.4 |
-| `changes` | Registro de modificaciones (§5.6): estados propuesta/ejecutada, refs Git — entidad de primer orden, no un content_item |
-| `test_cases` | "Funcionalidades sin pruebas" (§5.8) y MCP `list_test_cases`/`register_test_result` requieren entidad propia |
-| `test_results` | Ejecuciones (humano o agente) vinculadas a caso, nodo de contexto y agente — auditoría §5.9 |
-| `service_accounts` | Identidad de agentes/integraciones separada de `users` — §5.9 "diferencia acciones humanas de automatizadas" |
-| `api_tokens` | Tokens de servicio con hash, scopes, expiración, revocación — §9, MCP §5 |
-| `node_closure` *(opcional)* | Fallback/medida si `ltree` no está disponible (PP-009) o para analítica de subárboles |
-| `item_node_links` | N:M explícita documento↔nodo (un doc a varios nodos; un nodo varios docs) — §5.3 |
-| `product_objectives` | Objetivo de producto como entidad ordenada con estado — §5.1 "descripción y objetivos" con seguimiento |
-| `schema_migrations` / `seed_runs` | Metadatos operativos de migraciones y seeds (trazabilidad del propio esquema) |
+| Nueva entidad                     | Por qué es necesaria                                                                                                   |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `document_types`                  | Los 13 tipos documentales + `adr` como catálogo configurable (no enum) — §5.3 pide tipos "considerados", no cerrados   |
+| `workflow_states`                 | Estados configurables de tareas/incidencias por producto (§5.4) — no cabe en enum fijo                                 |
+| `state_transitions`               | Transiciones controladas con origen/destino y permiso requerido — requisito explícito §5.4                             |
+| `changes`                         | Registro de modificaciones (§5.6): estados propuesta/ejecutada, refs Git — entidad de primer orden, no un content_item |
+| `test_cases`                      | "Funcionalidades sin pruebas" (§5.8) y MCP `list_test_cases`/`register_test_result` requieren entidad propia           |
+| `test_results`                    | Ejecuciones (humano o agente) vinculadas a caso, nodo de contexto y agente — auditoría §5.9                            |
+| `service_accounts`                | Identidad de agentes/integraciones separada de `users` — §5.9 "diferencia acciones humanas de automatizadas"           |
+| `api_tokens`                      | Tokens de servicio con hash, scopes, expiración, revocación — §9, MCP §5                                               |
+| `node_closure` _(opcional)_       | Fallback/medida si `ltree` no está disponible (PP-009) o para analítica de subárboles                                  |
+| `item_node_links`                 | N:M explícita documento↔nodo (un doc a varios nodos; un nodo varios docs) — §5.3                                       |
+| `product_objectives`              | Objetivo de producto como entidad ordenada con estado — §5.1 "descripción y objetivos" con seguimiento                 |
+| `schema_migrations` / `seed_runs` | Metadatos operativos de migraciones y seeds (trazabilidad del propio esquema)                                          |
 
 ## 4. Entidades principales — atributos
 
@@ -54,18 +54,18 @@
 
 **products**
 
-| Columna | Tipo | Notas |
-|---|---|---|
-| id | uuid PK (v7) | |
-| slug | citext UNIQUE | `kanora` |
-| name | text NOT NULL | |
-| tagline, description | text | |
-| status | text CHECK in (`active`,`in_development`,`maintenance`,`archived`) | §5.1 |
-| tech_stack | jsonb `string[]` | `["Next.js","NestJS",…]` |
-| repo_url | text | |
-| icon, color | text | UI |
-| org_id | uuid NOT NULL → organizations | Preparado para SaaS (ver nota) |
-| created_at, updated_at, deleted_at | timestamptz | soft-delete |
+| Columna                            | Tipo                                                               | Notas                          |
+| ---------------------------------- | ------------------------------------------------------------------ | ------------------------------ |
+| id                                 | uuid PK (v7)                                                       |                                |
+| slug                               | citext UNIQUE                                                      | `kanora`                       |
+| name                               | text NOT NULL                                                      |                                |
+| tagline, description               | text                                                               |                                |
+| status                             | text CHECK in (`active`,`in_development`,`maintenance`,`archived`) | §5.1                           |
+| tech_stack                         | jsonb `string[]`                                                   | `["Next.js","NestJS",…]`       |
+| repo_url                           | text                                                               |                                |
+| icon, color                        | text                                                               | UI                             |
+| org_id                             | uuid NOT NULL → organizations                                      | Preparado para SaaS (ver nota) |
+| created_at, updated_at, deleted_at | timestamptz                                                        | soft-delete                    |
 
 > Nota multi-tenant: se añade `organizations` aunque la v1 use una sola org ("Acme & Co"); evita migración destructiva futura (D: SaaS-ready, §3.1). Cada `product` pertenece a exactamente una `organization`.
 
@@ -81,20 +81,20 @@
 
 **product_nodes**
 
-| Columna | Tipo | Notas |
-|---|---|---|
-| id | uuid PK (v7) | |
-| product_id | uuid NOT NULL → products | |
-| parent_id | uuid NULL → product_nodes(id, product_id) | FK compuesta |
-| node_type_id | uuid NOT NULL → node_types | |
-| code | text NOT NULL | `PANT-02` único por producto: UNIQUE `(product_id, code)` |
-| name | text NOT NULL | |
-| path | `ltree NOT NULL` | materializa jerarquía (ver §5) |
-| depth | int NOT NULL DEFAULT 0 | |
-| position | int NOT NULL | hermano orden |
-| status | text CHECK (`planned`,`in_progress`,`done`,`deprecated`,`disabled`) | |
-| owner_id | uuid NULL → users | responsable funcional |
-| created_at, updated_at, deleted_at | timestamptz | desactivar = soft-delete |
+| Columna                            | Tipo                                                                | Notas                                                     |
+| ---------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------- |
+| id                                 | uuid PK (v7)                                                        |                                                           |
+| product_id                         | uuid NOT NULL → products                                            |                                                           |
+| parent_id                          | uuid NULL → product_nodes(id, product_id)                           | FK compuesta                                              |
+| node_type_id                       | uuid NOT NULL → node_types                                          |                                                           |
+| code                               | text NOT NULL                                                       | `PANT-02` único por producto: UNIQUE `(product_id, code)` |
+| name                               | text NOT NULL                                                       |                                                           |
+| path                               | `ltree NOT NULL`                                                    | materializa jerarquía (ver §5)                            |
+| depth                              | int NOT NULL DEFAULT 0                                              |                                                           |
+| position                           | int NOT NULL                                                        | hermano orden                                             |
+| status                             | text CHECK (`planned`,`in_progress`,`done`,`deprecated`,`disabled`) |                                                           |
+| owner_id                           | uuid NULL → users                                                   | responsable funcional                                     |
+| created_at, updated_at, deleted_at | timestamptz                                                         | desactivar = soft-delete                                  |
 
 **Restricciones:** un nodo raíz tiene `parent_id IS NULL`; mover = transacción: actualizar parent+path en todo el subárbol (UPDATE recursivo acotado). **Cero ciclos** validado antes de aplicar (DFS). **Índice único parcial** `(product_id, code) WHERE deleted_at IS NULL`.
 
@@ -102,20 +102,20 @@
 
 **content_items** — supertipo de los 13 tipos documentales + ADR.
 
-| Columna | Tipo | Notas |
-|---|---|---|
-| id | uuid PK (v7) | |
-| product_id | uuid NOT NULL | |
-| doc_type_id | uuid NOT NULL → document_types | kind funcional (`spec`,`use_case`,`business_rule`,`api_contract`,`adr`,`test_doc`,…) |
-| code | text | `DOC-101` opcional, único por producto |
-| title | text NOT NULL | |
-| body_markdown | text NOT NULL DEFAULT '' | fuente de verdad (no HTML) |
-| status | text CHECK (`draft`,`in_review`,`published`,`archived`) | publicación controlada |
-| scope | text CHECK (`node`,`global`) DEFAULT 'node' | documentación global del producto (§5.1) |
-| version | int NOT NULL DEFAULT 1 | espejo denormalizado de item_versions |
-| search_tsv | tsvector GENERATED | índice GIN (búsqueda) |
-| created_by, updated_by | uuid → users | |
-| created_at, updated_at, deleted_at | timestamptz | |
+| Columna                            | Tipo                                                    | Notas                                                                                |
+| ---------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| id                                 | uuid PK (v7)                                            |                                                                                      |
+| product_id                         | uuid NOT NULL                                           |                                                                                      |
+| doc_type_id                        | uuid NOT NULL → document_types                          | kind funcional (`spec`,`use_case`,`business_rule`,`api_contract`,`adr`,`test_doc`,…) |
+| code                               | text                                                    | `DOC-101` opcional, único por producto                                               |
+| title                              | text NOT NULL                                           |                                                                                      |
+| body_markdown                      | text NOT NULL DEFAULT ''                                | fuente de verdad (no HTML)                                                           |
+| status                             | text CHECK (`draft`,`in_review`,`published`,`archived`) | publicación controlada                                                               |
+| scope                              | text CHECK (`node`,`global`) DEFAULT 'node'             | documentación global del producto (§5.1)                                             |
+| version                            | int NOT NULL DEFAULT 1                                  | espejo denormalizado de item_versions                                                |
+| search_tsv                         | tsvector GENERATED                                      | índice GIN (búsqueda)                                                                |
+| created_by, updated_by             | uuid → users                                            |                                                                                      |
+| created_at, updated_at, deleted_at | timestamptz                                             |                                                                                      |
 
 **item_versions** — `id, item_id → content_items (ON DELETE RESTRICT), version int, title, body_markdown, author_id, change_note, created_at`. UNIQUE `(item_id, version)`. **Inmutable**: trigger prohíbe UPDATE/DELETE.
 
@@ -135,18 +135,18 @@
 
 **relations** — pieza central del modelo (ver §6).
 
-| Columna | Tipo | Notas |
-|---|---|---|
-| id | uuid PK (v7) | |
-| product_id | uuid NOT NULL | siempre; nunca relaciones entre productos |
-| source_kind | text NOT NULL CHECK in (`node`,`item`,`task`,`issue`,`change`,`test_case`,`decision`=item) | |
-| source_id | uuid NOT NULL | sin FK fís. cross-kind; integridad por trigger (§7) |
-| target_kind | text NOT NULL (mismo catálogo) | |
-| target_id | uuid NOT NULL | |
+| Columna       | Tipo                                                                                                                                                                                      | Notas                                                 |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| id            | uuid PK (v7)                                                                                                                                                                              |                                                       |
+| product_id    | uuid NOT NULL                                                                                                                                                                             | siempre; nunca relaciones entre productos             |
+| source_kind   | text NOT NULL CHECK in (`node`,`item`,`task`,`issue`,`change`,`test_case`,`decision`=item)                                                                                                |                                                       |
+| source_id     | uuid NOT NULL                                                                                                                                                                             | sin FK fís. cross-kind; integridad por trigger (§7)   |
+| target_kind   | text NOT NULL (mismo catálogo)                                                                                                                                                            |                                                       |
+| target_id     | uuid NOT NULL                                                                                                                                                                             |                                                       |
 | relation_type | text NOT NULL CHECK in (`affects`,`documents`,`specifies`,`implements`,`resolves`,`blocks`,`is_blocked_by`,`verifies`,`depends_on`,`relates_to`,`modifies`,`references`,`applies_rule`,…) | Catálogo inicial extensible; apenas 12–15 suficientes |
-| metadata | jsonb | p. ej. `{"note": "…"}` |
-| created_by | uuid | |
-| created_at | timestamptz | |
+| metadata      | jsonb                                                                                                                                                                                     | p. ej. `{"note": "…"}`                                |
+| created_by    | uuid                                                                                                                                                                                      |                                                       |
+| created_at    | timestamptz                                                                                                                                                                               |                                                       |
 
 UNIQUE `(product_id, source_kind, source_id, target_kind, target_id, relation_type)` — idempotencia natural (importaciones, agentes con retry). Índices: `(target_kind, target_id)`, `(source_kind, source_id)`, `(product_id, relation_type)`.
 
@@ -168,12 +168,12 @@ UNIQUE `(product_id, source_kind, source_id, target_kind, target_id, relation_ty
 
 ## 5. Implementación del árbol jerárquico
 
-| Enfoque | Pros | Contras | Veredicto |
-|---|---|---|---|
-| Nested sets (lft/rght) | Lectura de subárbol O(1) | Movimientos/inserciones O(n); bloqueos; frágil con concurrencia | Descartada |
-| Adyacencia simple (`parent_id`) | Simple; movimientos baratos | Subárbol = CTE recursivo (ok con índice pero coste por consulta) | Necesaria pero no suficiente |
-| Materialized path `ltree` | Subárbol `path <@ 'a.b'` indexado (GiST); orden estable; barato | Requiere `CREATE EXTENSION ltree`; reescritura de path en moves | **Propuesta** |
-| Closure table | Sin extensión; integridad FK pura | Doble escritura; tabla extra; más código | Plan B si PP-009 rechaza ltree |
+| Enfoque                         | Pros                                                            | Contras                                                          | Veredicto                      |
+| ------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------ |
+| Nested sets (lft/rght)          | Lectura de subárbol O(1)                                        | Movimientos/inserciones O(n); bloqueos; frágil con concurrencia  | Descartada                     |
+| Adyacencia simple (`parent_id`) | Simple; movimientos baratos                                     | Subárbol = CTE recursivo (ok con índice pero coste por consulta) | Necesaria pero no suficiente   |
+| Materialized path `ltree`       | Subárbol `path <@ 'a.b'` indexado (GiST); orden estable; barato | Requiere `CREATE EXTENSION ltree`; reescritura de path en moves  | **Propuesta**                  |
+| Closure table                   | Sin extensión; integridad FK pura                               | Doble escritura; tabla extra; más código                         | Plan B si PP-009 rechaza ltree |
 
 **Propuesta:** adyacencia (`parent_id`) **+** `ltree path` mantenido en servicio de dominio (`TreeService.move()` en una transacción). Moves son eventos raros y administrativos; el coste O(subárbol) es asumible y atómico con `serializable`. Para `node_closure` se documenta como alternativa (mismo servicio podría emitirla después).
 
@@ -183,12 +183,12 @@ UNIQUE `(product_id, source_kind, source_id, target_kind, target_id, relation_ty
 
 **Comparación:**
 
-| Enfoque | Integridad referencial | Coste | Consultabilidad bidireccional | Veredicto |
-|---|---|---|---|---|
-| N tablas puente explícitas (`task_nodes`, `issue_items`, …) | FK reales | Explosión combinatoria, migraciones constantes | Buena | Descartada (escala mal con nuevos kinds) |
-| Polimorfismo puro (`entity_type`, `entity_id`) sin checks | Ninguna (huérfanos silenciosos) | Mínimo | Excelente | Descartada (viola §8) |
-| **`relations` unificada + triggers de validación por `kind`** | **Garantizada por trigger (ver §7)** | Una tabla, un índice dual | **Excelente (un solo índice)** | **Propuesta** |
-| Tabla `entities` superpágina (todo tiene fila ahí) | FK reales a superpágina | Doble transacción en cada alta; JPQL feo | Excelente | Alternativa documentada; descartada por simplicidad |
+| Enfoque                                                       | Integridad referencial               | Coste                                          | Consultabilidad bidireccional  | Veredicto                                           |
+| ------------------------------------------------------------- | ------------------------------------ | ---------------------------------------------- | ------------------------------ | --------------------------------------------------- |
+| N tablas puente explícitas (`task_nodes`, `issue_items`, …)   | FK reales                            | Explosión combinatoria, migraciones constantes | Buena                          | Descartada (escala mal con nuevos kinds)            |
+| Polimorfismo puro (`entity_type`, `entity_id`) sin checks     | Ninguna (huérfanos silenciosos)      | Mínimo                                         | Excelente                      | Descartada (viola §8)                               |
+| **`relations` unificada + triggers de validación por `kind`** | **Garantizada por trigger (ver §7)** | Una tabla, un índice dual                      | **Excelente (un solo índice)** | **Propuesta**                                       |
+| Tabla `entities` superpágina (todo tiene fila ahí)            | FK reales a superpágina              | Doble transacción en cada alta; JPQL feo       | Excelente                      | Alternativa documentada; descartada por simplicidad |
 
 El diseño propuesto conserva los nombres del prompt: vistas `node_relations` y `item_relations` como `SELECT … WHERE source_kind='node'` etc., para no romper la referencia mental del documento original.
 
@@ -249,19 +249,20 @@ SELECT t.* FROM relations r JOIN tasks t ON t.id = r.source_id
 WHERE r.product_id = $1 AND r.target_kind='node' AND r.target_id = $2
   AND r.source_kind='task' AND r.relation_type IN ('affects','implements');
 ```
+
 Las seis restantes son la misma forma con (kind, relation_type) distintos. `get_product_context` (MCP §6) usa una CTE que recolecta nodos relacionados + docs + reglas + CU + tareas abiertas + incidencias abiertas + cambios recientes en una pasada.
 
 ## 10. Matriz de autorización (resumen; detalle en [05](05-experiencia-usuario.md) §8)
 
-| Permiso | Admin global | Admin producto | Colaborador | Consulta |
-|---|:-:|:-:|:-:|:-:|
-| Gestionar productos / org | ✅ | ❌ | ❌ | ❌ |
-| Miembros del producto / integraciones | ✅ | ✅ | ❌ | ❌ |
-| Editar configuración (tipos, estados) | ✅ | ✅ | ❌ | ❌ |
-| Crear/editar nodos, docs, tareas, incidencias, cambios | ✅ | ✅ | ✅ | ❌ |
-| Publicar documento / ejecutar cambio (MOD) | ✅ | ✅ | ✍️ solo con permiso | ❌ |
-| Leer todo | ✅ | ✅ | ✅ | ✅ |
-| Confirmar acciones de agentes (agent:confirm) | ✅ | ✅ | ❌* | ❌ |
+| Permiso                                                | Admin global | Admin producto |     Colaborador     | Consulta |
+| ------------------------------------------------------ | :----------: | :------------: | :-----------------: | :------: |
+| Gestionar productos / org                              |      ✅      |       ❌       |         ❌          |    ❌    |
+| Miembros del producto / integraciones                  |      ✅      |       ✅       |         ❌          |    ❌    |
+| Editar configuración (tipos, estados)                  |      ✅      |       ✅       |         ❌          |    ❌    |
+| Crear/editar nodos, docs, tareas, incidencias, cambios |      ✅      |       ✅       |         ✅          |    ❌    |
+| Publicar documento / ejecutar cambio (MOD)             |      ✅      |       ✅       | ✍️ solo con permiso |    ❌    |
+| Leer todo                                              |      ✅      |       ✅       |         ✅          |    ✅    |
+| Confirmar acciones de agentes (agent:confirm)          |      ✅      |       ✅       |         ❌*         |    ❌    |
 
 \* Configurable por producto (PP-006).
 

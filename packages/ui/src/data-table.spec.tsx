@@ -32,7 +32,9 @@ describe('DataTable', () => {
 
   it('onRowClick al pulsar y con Enter', () => {
     const onRowClick = vi.fn();
-    render(<DataTable columns={columns} rows={rows} rowKey={(row) => row.id} onRowClick={onRowClick} />);
+    render(
+      <DataTable columns={columns} rows={rows} rowKey={(row) => row.id} onRowClick={onRowClick} />,
+    );
     fireEvent.click(screen.getByText('Kanora'));
     expect(onRowClick).toHaveBeenCalledWith(rows[0]);
     fireEvent.keyDown(screen.getByText('Verdana').closest('tr')!, { key: 'Enter' });
@@ -40,7 +42,15 @@ describe('DataTable', () => {
   });
 
   it('marca la fila seleccionada', () => {
-    render(<DataTable columns={columns} rows={rows} rowKey={(row) => row.id} onRowClick={() => {}} selectedRowKey="2" />);
+    render(
+      <DataTable
+        columns={columns}
+        rows={rows}
+        rowKey={(row) => row.id}
+        onRowClick={() => {}}
+        selectedRowKey="2"
+      />,
+    );
     const row = screen.getByText('Verdana').closest('tr')!;
     expect(row.className).toContain('selected');
   });

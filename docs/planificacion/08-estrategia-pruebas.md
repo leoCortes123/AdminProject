@@ -4,13 +4,13 @@
 
 ## 1. Pirámide y proporción objetivo
 
-| Capa | % | Ejemplos |
-|---|---|---|
-| Unitarias (dominio puro) | 45% | TreeService (ciclos, ltree), StateMachine, ChangelogService, DiffService, PermissionsGuard logic |
-| Integración (API + PG real) | 30% | CRUD + transacciones + triggers de relations + FTS |
-| Contrato API / OpenAPI | 10% | Esquema OpenAPI valida respuestas; breaking changes detectados (openapi-diff) |
-| Componentes (React) | 5% | Tree, DataTable, Tabs, KanbanBoard (dnd), CommandPalette |
-| E2E (Playwright) | 10% | Flujos dorados (§4) |
+| Capa                        | %   | Ejemplos                                                                                         |
+| --------------------------- | --- | ------------------------------------------------------------------------------------------------ |
+| Unitarias (dominio puro)    | 45% | TreeService (ciclos, ltree), StateMachine, ChangelogService, DiffService, PermissionsGuard logic |
+| Integración (API + PG real) | 30% | CRUD + transacciones + triggers de relations + FTS                                               |
+| Contrato API / OpenAPI      | 10% | Esquema OpenAPI valida respuestas; breaking changes detectados (openapi-diff)                    |
+| Componentes (React)         | 5%  | Tree, DataTable, Tabs, KanbanBoard (dnd), CommandPalette                                         |
+| E2E (Playwright)            | 10% | Flujos dorados (§4)                                                                              |
 
 Cobertura mínima CI: **dominio core 80%**, **permisos 100%** (todo permiso declarado tiene test allow+deny), ramas de `relations` trigger 100%.
 

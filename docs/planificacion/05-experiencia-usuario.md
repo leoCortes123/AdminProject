@@ -35,21 +35,21 @@ graph TD
 
 Cada pantalla del mockup con: propósito, operaciones, permisos (matriz §8) y endpoint principal.
 
-| # | Vista (mockup) | Propósito / responsabilidades | Operaciones clave | API principal |
-|---|---|---|---|---|
-| 1 | **Productos** | Estado transversal de la organización; alta y navegación a espacios | listar, crear, filtrar, abrir espacio | `GET/POST /products` |
-| 2 | **Resumen** | Ficha raíz del producto: objetivos, stack, repo, integrantes, actividad, documentación global | ver actividad, saltar a docs globales, ir a configuración | `GET /products/:id` + `/activity` |
-| 3 | **Arquitectura funcional** | Árbol configurable + ficha integral; crear/mover/duplicar/desactivar nodos | seleccionar, expandir, filtrar tipo, mover (dnd), duplicar, CRUD nodo | `/nodes/*` |
-| 3a | Ficha → pestañas | Contexto completo del elemento (código, estado, responsable, avance) | cambiar pestaña, adjuntar doc/tarea, reportar incidencia, ver relaciones e historial | `/nodes/:id/*`, `/relations` |
-| 4 | **Documentación** | Biblioteca tipada con vista previa Markdown y versionado | filtrar tipo/estado, buscar, abrir, editar, ver versiones, exportar | `/documents/*` |
-| 5 | **Tareas** | Trabajo vinculado al árbol; 3 representaciones | cambiar vista, filtrar, crear, transicionar estado, dependencias | `/tasks/*` |
-| 6 | **Incidencias** | Errores reproducibles; maestro-detalle | filtrar severidad, crear, vincular tarea/MOD, verificar | `/issues/*` |
-| 7 | **Modificaciones** | Registro de cambios propuesta/ejecutada con refs Git | filtrar estado, registrar, vincular elementos, ver commits | `/changes/*` |
-| 8 | **Trazabilidad** | 7 consultas canónicas + grafo de relaciones del elemento | ejecutar consulta, navegar a elemento relacionado | `/trace/*`, `/relations` |
-| 9 | **Seguimiento** | Estado del producto en tablas y listas | filtrar actividad, ir a elementos sin doc/prueba/bloqueados | `/products/:id/overview` |
-| 10 | **Agentes IA** | Auditoría y gobierno de integraciones/agentes | ver operaciones, ejecuciones, estado MCP, configurar | `/integrations/*`, `/agents/*` |
-| 11 | **Configuración** | Miembros/roles, tipos de nodo, estados de tarea, integraciones | invitar, cambiar rol, añadir tipo, editar transiciones, toggles | `/config/*` |
-| 12 | **Mapa del sistema** | Sitemap navegable con referencias §al prompt | navegar | estático (documento de UX) |
+| #   | Vista (mockup)             | Propósito / responsabilidades                                                                 | Operaciones clave                                                                    | API principal                     |
+| --- | -------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | --------------------------------- |
+| 1   | **Productos**              | Estado transversal de la organización; alta y navegación a espacios                           | listar, crear, filtrar, abrir espacio                                                | `GET/POST /products`              |
+| 2   | **Resumen**                | Ficha raíz del producto: objetivos, stack, repo, integrantes, actividad, documentación global | ver actividad, saltar a docs globales, ir a configuración                            | `GET /products/:id` + `/activity` |
+| 3   | **Arquitectura funcional** | Árbol configurable + ficha integral; crear/mover/duplicar/desactivar nodos                    | seleccionar, expandir, filtrar tipo, mover (dnd), duplicar, CRUD nodo                | `/nodes/*`                        |
+| 3a  | Ficha → pestañas           | Contexto completo del elemento (código, estado, responsable, avance)                          | cambiar pestaña, adjuntar doc/tarea, reportar incidencia, ver relaciones e historial | `/nodes/:id/*`, `/relations`      |
+| 4   | **Documentación**          | Biblioteca tipada con vista previa Markdown y versionado                                      | filtrar tipo/estado, buscar, abrir, editar, ver versiones, exportar                  | `/documents/*`                    |
+| 5   | **Tareas**                 | Trabajo vinculado al árbol; 3 representaciones                                                | cambiar vista, filtrar, crear, transicionar estado, dependencias                     | `/tasks/*`                        |
+| 6   | **Incidencias**            | Errores reproducibles; maestro-detalle                                                        | filtrar severidad, crear, vincular tarea/MOD, verificar                              | `/issues/*`                       |
+| 7   | **Modificaciones**         | Registro de cambios propuesta/ejecutada con refs Git                                          | filtrar estado, registrar, vincular elementos, ver commits                           | `/changes/*`                      |
+| 8   | **Trazabilidad**           | 7 consultas canónicas + grafo de relaciones del elemento                                      | ejecutar consulta, navegar a elemento relacionado                                    | `/trace/*`, `/relations`          |
+| 9   | **Seguimiento**            | Estado del producto en tablas y listas                                                        | filtrar actividad, ir a elementos sin doc/prueba/bloqueados                          | `/products/:id/overview`          |
+| 10  | **Agentes IA**             | Auditoría y gobierno de integraciones/agentes                                                 | ver operaciones, ejecuciones, estado MCP, configurar                                 | `/integrations/*`, `/agents/*`    |
+| 11  | **Configuración**          | Miembros/roles, tipos de nodo, estados de tarea, integraciones                                | invitar, cambiar rol, añadir tipo, editar transiciones, toggles                      | `/config/*`                       |
+| 12  | **Mapa del sistema**       | Sitemap navegable con referencias §al prompt                                                  | navegar                                                                              | estático (documento de UX)        |
 
 ## 4. La ficha integral del elemento (contrato)
 
@@ -57,16 +57,16 @@ Cada pantalla del mockup con: propósito, operaciones, permisos (matriz §8) y e
 
 **Pestañas (visibilidad por tipo):**
 
-| Pestaña | Contenido | Tipos que la muestran |
-|---|---|---|
-| Resumen | Descripción, estado, responsable, avance, últimas versiones, cobertura de pruebas | Todos |
-| Funcionalidad | Objetivo, casos de uso, reglas de negocio, RNF, flujos | Módulo, Submódulo, Pantalla, Pestaña, Componente, Proceso, Servicio |
-| Documentación | Lista de docs del nodo + adjuntar | Nodos estructurales y Componente |
-| Tareas | Tareas vinculadas + crear | Todos los nodos |
-| Incidencias | Incidencias vinculadas + reportar | Todos los nodos |
-| Relaciones | Entrantes/salientes con tipo y contraparte navegable | Todos |
-| Historial | Timeline unificada (humano/agente) con enlaces a MOD/docs | Todos |
-| *No aplican*: un Proceso/Servicio no muestra "Funcionalidad" de pantalla; un Componente no muestra "Casos de uso" como raíz. La visibilidad se define en `node_types.ui_tabs`. |
+| Pestaña                                                                                                                                                                        | Contenido                                                                         | Tipos que la muestran                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Resumen                                                                                                                                                                        | Descripción, estado, responsable, avance, últimas versiones, cobertura de pruebas | Todos                                                               |
+| Funcionalidad                                                                                                                                                                  | Objetivo, casos de uso, reglas de negocio, RNF, flujos                            | Módulo, Submódulo, Pantalla, Pestaña, Componente, Proceso, Servicio |
+| Documentación                                                                                                                                                                  | Lista de docs del nodo + adjuntar                                                 | Nodos estructurales y Componente                                    |
+| Tareas                                                                                                                                                                         | Tareas vinculadas + crear                                                         | Todos los nodos                                                     |
+| Incidencias                                                                                                                                                                    | Incidencias vinculadas + reportar                                                 | Todos los nodos                                                     |
+| Relaciones                                                                                                                                                                     | Entrantes/salientes con tipo y contraparte navegable                              | Todos                                                               |
+| Historial                                                                                                                                                                      | Timeline unificada (humano/agente) con enlaces a MOD/docs                         | Todos                                                               |
+| _No aplican_: un Proceso/Servicio no muestra "Funcionalidad" de pantalla; un Componente no muestra "Casos de uso" como raíz. La visibilidad se define en `node_types.ui_tabs`. |
 
 **Contador en cada pestaña** (nº de docs/tareas/incidencias/relaciones) — ya presente en mockup.
 
@@ -124,23 +124,23 @@ Tokens heredados de `muckup/css/styles.css`: paleta sidebar oscura `#0e1424`, ac
 
 ## 8. Matriz de autorización por pantalla (RBAC por producto)
 
-| Pantalla / operación | Admin global | Admin producto | Colaborador | Consulta |
-|---|:-:|:-:|:-:|:-:|
-| Ver Productos / métricas org | ✅ | (solo sus productos) | (sus productos) | ✅ lectura |
-| Crear / archivar producto | ✅ | ❌ | ❌ | ❌ |
-| Resumen (lectura) | ✅ | ✅ | ✅ | ✅ |
-| Árbol: crear/mover/duplicar/desactivar nodo | ✅ | ✅ | ✅ | ❌ |
-| Documentación: crear/editar | ✅ | ✅ | ✅ | ❌ |
-| Documentación: publicar / archivar versión | ✅ | ✅ | ✍️ con `docs:publish` | ❌ |
-| Tareas: crear/editar/transicionar | ✅ | ✅ | ✅ | ❌ |
-| Incidencias: crear/editar | ✅ | ✅ | ✅ | ❌ |
-| Modificaciones: proponer | ✅ | ✅ | ✅ | ❌ |
-| Modificaciones: **ejecutar** | ✅ | ✅ | ✍️ con `changes:execute` | ❌ |
-| Trazabilidad / Seguimiento (lectura) | ✅ | ✅ | ✅ | ✅ |
-| Agentes: ver auditoría | ✅ | ✅ | ❌ | ❌ |
-| Agentes: activar MCP / crear token | ✅ | ✅ | ❌ | ❌ |
-| Confirmar acción sensible de agente | ✅ | ✅ | ❌ (PP-006) | ❌ |
-| Configuración: miembros / integraciones | ✅ | ✅ | ❌ | ❌ |
+| Pantalla / operación                        | Admin global |    Admin producto    |       Colaborador        |  Consulta  |
+| ------------------------------------------- | :----------: | :------------------: | :----------------------: | :--------: |
+| Ver Productos / métricas org                |      ✅      | (solo sus productos) |     (sus productos)      | ✅ lectura |
+| Crear / archivar producto                   |      ✅      |          ❌          |            ❌            |     ❌     |
+| Resumen (lectura)                           |      ✅      |          ✅          |            ✅            |     ✅     |
+| Árbol: crear/mover/duplicar/desactivar nodo |      ✅      |          ✅          |            ✅            |     ❌     |
+| Documentación: crear/editar                 |      ✅      |          ✅          |            ✅            |     ❌     |
+| Documentación: publicar / archivar versión  |      ✅      |          ✅          |  ✍️ con `docs:publish`   |     ❌     |
+| Tareas: crear/editar/transicionar           |      ✅      |          ✅          |            ✅            |     ❌     |
+| Incidencias: crear/editar                   |      ✅      |          ✅          |            ✅            |     ❌     |
+| Modificaciones: proponer                    |      ✅      |          ✅          |            ✅            |     ❌     |
+| Modificaciones: **ejecutar**                |      ✅      |          ✅          | ✍️ con `changes:execute` |     ❌     |
+| Trazabilidad / Seguimiento (lectura)        |      ✅      |          ✅          |            ✅            |     ✅     |
+| Agentes: ver auditoría                      |      ✅      |          ✅          |            ❌            |     ❌     |
+| Agentes: activar MCP / crear token          |      ✅      |          ✅          |            ❌            |     ❌     |
+| Confirmar acción sensible de agente         |      ✅      |          ✅          |       ❌ (PP-006)        |     ❌     |
+| Configuración: miembros / integraciones     |      ✅      |          ✅          |            ❌            |     ❌     |
 
 ## 9. Responsive y accesibilidad
 

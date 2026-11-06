@@ -4,13 +4,26 @@ import { CommandPalette, type CommandItem } from './command-palette';
 
 const makeItems = (onSelect = vi.fn()): CommandItem[] => [
   { id: 'nav-productos', label: 'Productos', hint: 'Organización', onSelect },
-  { id: 'nav-arbol', label: 'Arquitectura funcional', hint: 'Kanora', keywords: 'tree árbol arquitectura', onSelect },
-  { id: 'node-pant-02', label: 'PANT-02 · Ficha de producto', keywords: 'pantalla kanora', onSelect },
+  {
+    id: 'nav-arbol',
+    label: 'Arquitectura funcional',
+    hint: 'Kanora',
+    keywords: 'tree árbol arquitectura',
+    onSelect,
+  },
+  {
+    id: 'node-pant-02',
+    label: 'PANT-02 · Ficha de producto',
+    keywords: 'pantalla kanora',
+    onSelect,
+  },
 ];
 
 describe('CommandPalette', () => {
   it('no renderiza nada cuando open=false', () => {
-    const { container } = render(<CommandPalette open={false} onClose={() => {}} items={makeItems()} />);
+    const { container } = render(
+      <CommandPalette open={false} onClose={() => {}} items={makeItems()} />,
+    );
     expect(container.firstChild).toBeNull();
   });
 

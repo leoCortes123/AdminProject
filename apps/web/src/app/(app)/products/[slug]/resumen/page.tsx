@@ -31,7 +31,9 @@ export default async function ResumenPage({ params }: { params: Promise<{ slug: 
 
   const [nodes, members] = await Promise.all([
     apiFetch<ProductNode[]>(`/api/v1/products/${slug}/nodes`).catch(() => [] as ProductNode[]),
-    apiFetch<ProductMember[]>(`/api/v1/products/${slug}/members`).catch(() => [] as ProductMember[]),
+    apiFetch<ProductMember[]>(`/api/v1/products/${slug}/members`).catch(
+      () => [] as ProductMember[],
+    ),
   ]);
 
   const moduleProgress = computeModuleProgress(nodes);
@@ -48,16 +50,24 @@ export default async function ResumenPage({ params }: { params: Promise<{ slug: 
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <h1 style={{ fontSize: 19, letterSpacing: '-.4px' }}>{product.name}</h1>
-            <Pill tone={productStatusTone(product.status)}>{productStatusLabel(product.status)}</Pill>
-            {product.role && <Pill tone="accent">Tu rol: {ROLE_LABELS[product.role] ?? product.role}</Pill>}
+            <Pill tone={productStatusTone(product.status)}>
+              {productStatusLabel(product.status)}
+            </Pill>
+            {product.role && (
+              <Pill tone="accent">Tu rol: {ROLE_LABELS[product.role] ?? product.role}</Pill>
+            )}
           </div>
           {product.tagline && (
-            <p className="sub" style={{ marginTop: 3 }}>{product.tagline}</p>
+            <p className="sub" style={{ marginTop: 3 }}>
+              {product.tagline}
+            </p>
           )}
           {product.techStack.length > 0 && (
             <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
               {product.techStack.map((tech) => (
-                <span key={tech} className="stack-chip">{tech}</span>
+                <span key={tech} className="stack-chip">
+                  {tech}
+                </span>
               ))}
             </div>
           )}
@@ -75,7 +85,9 @@ export default async function ResumenPage({ params }: { params: Promise<{ slug: 
           <div className="panel panel-pad">
             <div className="panel-title">Descripción y objetivos</div>
             {product.description ? (
-              <p style={{ fontSize: '12.5px', lineHeight: 1.55, color: 'var(--ink)' }}>{product.description}</p>
+              <p style={{ fontSize: '12.5px', lineHeight: 1.55, color: 'var(--ink)' }}>
+                {product.description}
+              </p>
             ) : (
               <EmptyState
                 title="Sin descripción"
@@ -90,7 +102,12 @@ export default async function ResumenPage({ params }: { params: Promise<{ slug: 
               <dt>Repositorio</dt>
               <dd className="mono">
                 {product.repoUrl ? (
-                  <a href={product.repoUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-ink)' }}>
+                  <a
+                    href={product.repoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ color: 'var(--accent-ink)' }}
+                  >
                     {product.repoUrl}
                   </a>
                 ) : (
@@ -98,7 +115,9 @@ export default async function ResumenPage({ params }: { params: Promise<{ slug: 
                 )}
               </dd>
               <dt>Árbol funcional</dt>
-              <dd>{totalNodes} nodos · {doneNodes} hechos ({pct}%)</dd>
+              <dd>
+                {totalNodes} nodos · {doneNodes} hechos ({pct}%)
+              </dd>
             </dl>
           </div>
 
@@ -114,7 +133,9 @@ export default async function ResumenPage({ params }: { params: Promise<{ slug: 
                 <div key={module.id} className="module-row">
                   <div className="m-top">
                     <span className="m-name">
-                      <span className="mono" style={{ color: 'var(--ink-3)', marginRight: 8 }}>{module.code}</span>
+                      <span className="mono" style={{ color: 'var(--ink-3)', marginRight: 8 }}>
+                        {module.code}
+                      </span>
                       {module.name}
                     </span>
                     <div className="progress" style={{ flex: 1 }}>
@@ -130,20 +151,32 @@ export default async function ResumenPage({ params }: { params: Promise<{ slug: 
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div className="panel panel-pad">
-            <div className="panel-title">Integrantes <span className="count">{members.length}</span></div>
+            <div className="panel-title">
+              Integrantes <span className="count">{members.length}</span>
+            </div>
             {members.length === 0 ? (
-              <EmptyState title="Sin integrantes" description="Aún no hay miembros registrados en este producto." />
+              <EmptyState
+                title="Sin integrantes"
+                description="Aún no hay miembros registrados en este producto."
+              />
             ) : (
               members.map((member) => (
                 <div key={member.userId} className="member-row">
-                  <span className="member-avatar" style={{ background: 'var(--accent)' }} aria-hidden="true">
+                  <span
+                    className="member-avatar"
+                    style={{ background: 'var(--accent)' }}
+                    aria-hidden="true"
+                  >
                     {initials(member.name)}
                   </span>
                   <span style={{ minWidth: 0 }}>
                     <span style={{ fontWeight: 600, display: 'block' }}>{member.name}</span>
                     <span className="m-mail">{member.email}</span>
                   </span>
-                  <Pill tone={member.roleKey === 'admin_product' ? 'accent' : 'neutral'} className="" >
+                  <Pill
+                    tone={member.roleKey === 'admin_product' ? 'accent' : 'neutral'}
+                    className=""
+                  >
                     {ROLE_LABELS[member.roleKey] ?? member.roleKey}
                   </Pill>
                 </div>

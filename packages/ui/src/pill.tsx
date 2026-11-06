@@ -1,13 +1,6 @@
 import type { ReactNode } from 'react';
 
-export type PillTone =
-  | 'ok'
-  | 'warn'
-  | 'crit'
-  | 'info'
-  | 'neutral'
-  | 'violet'
-  | 'accent';
+export type PillTone = 'ok' | 'warn' | 'crit' | 'info' | 'neutral' | 'violet' | 'accent';
 
 export interface PillProps {
   tone?: PillTone;

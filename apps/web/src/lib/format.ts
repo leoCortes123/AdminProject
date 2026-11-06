@@ -44,7 +44,11 @@ export function timeAgo(iso: string, now = Date.now()): string {
   if (hours < 24) return `hace ${hours} h`;
   const days = Math.floor(hours / 24);
   if (days < 30) return `hace ${days} d`;
-  return new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(iso).toLocaleDateString('es-ES', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 export function initials(name: string): string {

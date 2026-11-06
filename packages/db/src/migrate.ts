@@ -18,7 +18,9 @@ import postgres from 'postgres';
 const MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations');
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
-  console.error('DATABASE_URL no definida (p. ej. postgres://devcycle:devcycle@localhost:5432/devcycle)');
+  console.error(
+    'DATABASE_URL no definida (p. ej. postgres://devcycle:devcycle@localhost:5432/devcycle)',
+  );
   process.exit(1);
 }
 
@@ -65,7 +67,9 @@ async function up() {
 async function down(all: boolean) {
   await ensureTable();
   const done = await applied();
-  const appliedList = migrationNames('down').filter((n) => done.has(n)).reverse();
+  const appliedList = migrationNames('down')
+    .filter((n) => done.has(n))
+    .reverse();
   const toRevert = all ? appliedList : appliedList.slice(0, 1);
   if (toRevert.length === 0) {
     console.info('Nada que revertir.');

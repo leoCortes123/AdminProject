@@ -19,7 +19,11 @@ export interface TabsProps {
  */
 export function Tabs({ tabs, activeId, onChange, ariaLabel, className }: TabsProps) {
   return (
-    <div className={['tabs', className].filter(Boolean).join(' ')} role="tablist" aria-label={ariaLabel}>
+    <div
+      className={['tabs', className].filter(Boolean).join(' ')}
+      role="tablist"
+      aria-label={ariaLabel}
+    >
       {tabs.map((tab) => {
         const active = tab.id === activeId;
         return (
