@@ -39,7 +39,10 @@ export async function createNestApp(): Promise<NestExpressApplication> {
       Promise.resolve()
         .then(() => authHandler(req, res))
         .catch((error: unknown) => {
-          authLogger.error(`auth handler falló: ${req.method} ${req.path}`, error instanceof Error ? error.stack : String(error));
+          authLogger.error(
+            `auth handler falló: ${req.method} ${req.path}`,
+            error instanceof Error ? error.stack : String(error),
+          );
           if (!res.headersSent) {
             res.writeHead(500, { 'content-type': 'application/json' });
             res.end(JSON.stringify({ detail: 'auth handler error' }));

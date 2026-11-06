@@ -125,23 +125,19 @@ describe('DevCycle API (integración · PG efímero)', () => {
       .post('/api/v1/products/itest-alpha/nodes')
       .send({ parentId: null, nodeTypeKey: 'modulo', code: 'MOD-1', name: 'Módulo Itest' });
     expect(mod.status).toBe(201);
-    const pant = await adminAgent
-      .post('/api/v1/products/itest-alpha/nodes')
-      .send({
-        parentId: mod.body.id,
-        nodeTypeKey: 'pantalla',
-        code: 'PANT-11',
-        name: 'Pantalla Itest',
-      });
+    const pant = await adminAgent.post('/api/v1/products/itest-alpha/nodes').send({
+      parentId: mod.body.id,
+      nodeTypeKey: 'pantalla',
+      code: 'PANT-11',
+      name: 'Pantalla Itest',
+    });
     expect(pant.status).toBe(201);
-    const comp = await adminAgent
-      .post('/api/v1/products/itest-alpha/nodes')
-      .send({
-        parentId: pant.body.id,
-        nodeTypeKey: 'componente',
-        code: 'COMP-11',
-        name: 'Componente Itest',
-      });
+    const comp = await adminAgent.post('/api/v1/products/itest-alpha/nodes').send({
+      parentId: pant.body.id,
+      nodeTypeKey: 'componente',
+      code: 'COMP-11',
+      name: 'Componente Itest',
+    });
     expect(comp.status).toBe(201);
 
     // Código duplicado → 409 node.code_conflict
@@ -184,13 +180,11 @@ describe('DevCycle API (integración · PG efímero)', () => {
   });
 
   it('FND-SEC · tenant-escape v1: sin membresía → 403; como viewer → leer sí, escribir no', async () => {
-    const signup = await outsiderAgent
-      .post('/api/auth/sign-up/email')
-      .send({
-        name: 'Outsider Itest',
-        email: 'outsider@itest.dev',
-        password: 'itest-password-123',
-      });
+    const signup = await outsiderAgent.post('/api/auth/sign-up/email').send({
+      name: 'Outsider Itest',
+      email: 'outsider@itest.dev',
+      password: 'itest-password-123',
+    });
     expect(signup.status).toBe(200);
 
     // Producto α ajeno: 403 en todo
