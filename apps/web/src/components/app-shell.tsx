@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, startTransition } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CommandPalette, type CommandItem } from '@devcycle/ui';
@@ -73,6 +73,8 @@ export function AppShell({ children, products, me }: AppShellProps) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [nodesForPalette, setNodesForPalette] = useState<ProductNode[] | null>(null);
+  // Selector de contexto: valor elegido hasta que la navegación se confirme.
+  const [pendingContext, setPendingContext] = useState<string | null>(null);
 
   const slug = productSlugFromPath(pathname);
   const currentProduct = slug ? (products.find((product) => product.slug === slug) ?? null) : null;
@@ -81,6 +83,17 @@ export function AppShell({ children, products, me }: AppShellProps) {
   const roleKey = me.globalRoles.includes('admin_global')
     ? 'admin_global'
     : (currentProduct?.role ?? me.memberships.find((m) => m.slug === slug)?.roleKey ?? 'viewer');
+
+  // Selector de contexto → navegación diferida: si se cambia a mitad de carga,
+  // el valor queda pendiente y el push ocurre tras el commit (startTransition).
+  useEffect(() => {
+    if (pendingContext === null) return;
+    const url = pendingContext === 'org' ? '/products' : `/products/${pendingContext}/resumen`;
+    startTransition(() => {
+      router.push(url);
+      setPendingContext(null);
+    });
+  }, [pendingContext, router]);
 
   // Ctrl/Cmd + K abre la paleta.
   useEffect(() => {
@@ -204,11 +217,8 @@ export function AppShell({ children, products, me }: AppShellProps) {
             id="productSwitcher"
             className="context-select"
             aria-label="Cambiar producto o vista organización"
-            value={orgMode ? 'org' : (slug ?? 'org')}
-            onChange={(event) => {
-              const value = event.target.value;
-              router.push(value === 'org' ? '/products' : `/products/${value}/resumen`);
-            }}
+            value={pendingContext ?? (orgMode ? 'org' : (slug ?? 'org'))}
+            onChange={(event) => setPendingContext(event.target.value)}
           >
             <option value="org">🌐 Organización general (todos los productos)</option>
             {products.map((product) => (
