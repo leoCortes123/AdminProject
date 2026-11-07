@@ -17,7 +17,8 @@ export class SearchController {
 
   @Get()
   @ApiOperation({
-    summary: 'Búsqueda FTS en español + códigos (v1: kinds=document; global completo en Fase 5)',
+    summary:
+      'Búsqueda global FTS español + códigos (kinds: document,node,task,issue,change,test_case)',
   })
   search(
     @CurrentProduct() product: ResolvedProduct,

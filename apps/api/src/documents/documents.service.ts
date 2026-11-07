@@ -17,6 +17,7 @@ import {
   type ListDocumentsQueryInput,
   type TransitionDocumentInput,
   type UpdateDocumentInput,
+  FUNCTIONAL_DOCUMENT_METADATA_SCHEMAS,
 } from '@devcycle/shared';
 import { ProblemException } from '../common/problem.exception';
 import { DB, type Database } from '../database';
@@ -42,6 +43,7 @@ export interface DocumentDto {
   status: DocumentStatus;
   scope: string;
   version: number;
+  metadata: Record<string, unknown>;
   createdBy: string | null;
   updatedBy: string | null;
   createdAt: Date;
@@ -55,6 +57,7 @@ export interface DocumentVersionDto {
   version: number;
   title: string;
   bodyMarkdown: string;
+  metadata: Record<string, unknown>;
   authorId: string | null;
   changeNote: string | null;
   createdAt: Date;
@@ -111,6 +114,7 @@ export class DocumentsService {
       status: row.status as DocumentStatus,
       scope: row.scope,
       version: row.version,
+      metadata: (row.metadata ?? {}) as Record<string, unknown>,
       createdBy: row.createdBy,
       updatedBy: row.updatedBy,
       createdAt: row.createdAt,
@@ -199,6 +203,7 @@ export class DocumentsService {
     actorId: string,
     ip?: string,
   ): Promise<DocumentDto> {
+    this.validateFunctionalMetadata(input.docTypeKey, input.metadata);
     try {
       return await this.db.transaction(async (tx) => {
         const [type] = await tx
@@ -220,6 +225,7 @@ export class DocumentsService {
             code: input.code ?? null,
             title: input.title,
             bodyMarkdown: input.bodyMarkdown,
+            metadata: (input.metadata ?? {}) as Record<string, unknown>,
             scope: input.scope,
             status: 'draft',
             version: 1,
@@ -235,6 +241,7 @@ export class DocumentsService {
           version: 1,
           title: created.title,
           bodyMarkdown: created.bodyMarkdown,
+          metadata: (created.metadata ?? {}) as Record<string, unknown>,
           authorId: actorId,
           changeNote: 'Creación inicial',
         });
@@ -273,6 +280,26 @@ export class DocumentsService {
         );
       }
       throw error;
+    }
+  }
+
+  private validateFunctionalMetadata(docTypeKey: string, metadata: unknown): void {
+    const schema =
+      FUNCTIONAL_DOCUMENT_METADATA_SCHEMAS[
+        docTypeKey as keyof typeof FUNCTIONAL_DOCUMENT_METADATA_SCHEMAS
+      ];
+    if (!schema) return;
+    const result = schema.safeParse(metadata ?? {});
+    if (!result.success) {
+      const detail = result.error.issues
+        .map(
+          (issue: { path: (string | number)[]; message: string }) =>
+            `${issue.path.join('.') || '(raíz)'}: ${issue.message}`,
+        )
+        .join('; ');
+      throw new ProblemException(
+        Problems.unprocessable(`Metadatos estructurados inválidos para '${docTypeKey}': ${detail}`),
+      );
     }
   }
 
@@ -337,6 +364,20 @@ export class DocumentsService {
 
         const updates: Record<string, unknown> = { updatedAt: new Date(), updatedBy: actorId };
         if (input.docTypeKey) updates['docTypeId'] = docTypeId;
+
+        if (input.metadata !== undefined) {
+          let effectiveTypeKey = input.docTypeKey;
+          if (!effectiveTypeKey) {
+            const [currentType] = await tx
+              .select()
+              .from(documentTypes)
+              .where(eq(documentTypes.id, current.docTypeId))
+              .limit(1);
+            effectiveTypeKey = currentType?.key ?? '';
+          }
+          this.validateFunctionalMetadata(effectiveTypeKey, input.metadata);
+          updates['metadata'] = input.metadata;
+        }
         if (input.title !== undefined) updates['title'] = input.title;
         if (input.bodyMarkdown !== undefined) updates['bodyMarkdown'] = input.bodyMarkdown;
         if (input.scope !== undefined) updates['scope'] = input.scope;
@@ -464,6 +505,7 @@ export class DocumentsService {
           version: nextVersion,
           title: current.title,
           bodyMarkdown: current.bodyMarkdown,
+          metadata: (current.metadata ?? {}) as Record<string, unknown>,
           authorId: actorId,
           changeNote: changeNote ?? `Publicación v${nextVersion}`,
         });
@@ -527,6 +569,14 @@ export class DocumentsService {
             ),
           );
         }
+        if (input.metadata !== undefined) {
+          const [currentType] = await tx
+            .select()
+            .from(documentTypes)
+            .where(eq(documentTypes.id, current.docTypeId))
+            .limit(1);
+          this.validateFunctionalMetadata(currentType?.key ?? '', input.metadata);
+        }
         const nextVersion = current.version + 1;
         const [versionRow] = await tx
           .insert(itemVersions)
@@ -535,6 +585,7 @@ export class DocumentsService {
             version: nextVersion,
             title: input.title ?? current.title,
             bodyMarkdown: input.bodyMarkdown ?? current.bodyMarkdown,
+            metadata: (input.metadata ?? current.metadata ?? {}) as Record<string, unknown>,
             authorId: actorId,
             changeNote: input.changeNote ?? null,
           })
@@ -556,7 +607,10 @@ export class DocumentsService {
           },
           tx,
         );
-        return versionRow!;
+        return {
+          ...versionRow!,
+          metadata: (versionRow!.metadata ?? {}) as Record<string, unknown>,
+        };
       });
     } catch (error) {
       if (isUniqueViolation(error)) {
@@ -573,11 +627,12 @@ export class DocumentsService {
 
   async listVersions(productId: string, idOrCode: string): Promise<DocumentVersionDto[]> {
     const item = await this.findActiveOrThrow(this.db, productId, idOrCode);
-    return this.db
+    const rows = await this.db
       .select()
       .from(itemVersions)
       .where(eq(itemVersions.itemId, item.id))
       .orderBy(desc(itemVersions.version));
+    return rows.map((r) => ({ ...r, metadata: (r.metadata ?? {}) as Record<string, unknown> }));
   }
 
   async getVersion(
@@ -592,7 +647,7 @@ export class DocumentsService {
       .where(and(eq(itemVersions.itemId, item.id), eq(itemVersions.version, version)))
       .limit(1);
     if (!row) throw new ProblemException(Problems.notFound('Versión', `v${version}`));
-    return row;
+    return { ...row, metadata: (row.metadata ?? {}) as Record<string, unknown> };
   }
 
   /** Soft-delete (deleted_at); las versiones y relaciones se conservan. */

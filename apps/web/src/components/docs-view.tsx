@@ -86,6 +86,7 @@ export function DocsView({
   const [draftTitle, setDraftTitle] = useState('');
   const [draftBody, setDraftBody] = useState('');
   const [draftTypeKey, setDraftTypeKey] = useState('');
+  const [draftMetadata, setDraftMetadata] = useState<Record<string, unknown>>({});
   const [saveState, setSaveState] = useState<string>('');
 
   const [versions, setVersions] = useState<DocumentVersion[]>([]);
@@ -103,6 +104,7 @@ export function DocsView({
   const [newTitle, setNewTitle] = useState('');
   const [newCode, setNewCode] = useState('');
   const [newBody, setNewBody] = useState('');
+  const [newMetadata, setNewMetadata] = useState<Record<string, unknown>>({});
   const [newNodeCode, setNewNodeCode] = useState('');
 
   const selected = docs.find((doc) => doc.id === selectedId) ?? null;
@@ -151,6 +153,7 @@ export function DocsView({
     setDraftTitle(selected.title);
     setDraftBody(selected.bodyMarkdown);
     setDraftTypeKey(selected.docTypeKey);
+    setDraftMetadata(selected.metadata ?? {});
     // Borrador local (F2-T04: autosave local con debounce, sin subir a servidor).
     try {
       const raw = localStorage.getItem(`devcycle:doc:draft:${selected.id}`);
@@ -224,6 +227,7 @@ export function DocsView({
           title: draftTitle,
           bodyMarkdown: draftBody,
           docTypeKey: draftTypeKey,
+          metadata: draftMetadata,
           expectedVersion: selected.version,
         }),
       });
@@ -290,6 +294,7 @@ export function DocsView({
           code: newCode.trim() ? newCode.trim() : null,
           title: newTitle,
           bodyMarkdown: newBody,
+          metadata: newMetadata,
           nodeCodes: newNodeCode ? [newNodeCode] : [],
         }),
       });
@@ -299,6 +304,7 @@ export function DocsView({
       setNewTitle('');
       setNewCode('');
       setNewBody('');
+      setNewMetadata({});
       setNewNodeCode('');
     }, 'Documento creado en borrador (v1).');
 
@@ -584,6 +590,587 @@ export function DocsView({
                       ))}
                     </select>
                   </label>
+                  {['use_case', 'business_rule', 'req_non_functional', 'workflow'].includes(
+                    draftTypeKey,
+                  ) && (
+                    <div
+                      style={{
+                        marginTop: 10,
+                        border: '1px solid var(--line)',
+                        borderRadius: 7,
+                        padding: 10,
+                        background: 'var(--surface-2, #f7f7f8)',
+                      }}
+                    >
+                      <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 6 }}>
+                        Datos estructurados
+                      </div>
+                      {draftTypeKey === 'use_case' && (
+                        <>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Actor
+                            <input
+                              type="text"
+                              value={String(draftMetadata.actor ?? '')}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({ ...p, actor: e.target.value }))
+                              }
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            />
+                          </label>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Objetivo (goal)
+                            <textarea
+                              value={String(draftMetadata.goal ?? '')}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({ ...p, goal: e.target.value }))
+                              }
+                              rows={2}
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            />
+                          </label>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Precondiciones (una por línea)
+                            <textarea
+                              value={((draftMetadata.preconditions as string[]) ?? []).join('\n')}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({
+                                  ...p,
+                                  preconditions: e.target.value.split('\n').filter(Boolean),
+                                }))
+                              }
+                              rows={2}
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            />
+                          </label>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Flujo principal (un paso por línea)
+                            <textarea
+                              value={((draftMetadata.mainFlow as string[]) ?? []).join('\n')}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({
+                                  ...p,
+                                  mainFlow: e.target.value.split('\n').filter(Boolean),
+                                }))
+                              }
+                              rows={4}
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            />
+                          </label>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Flujos alternativos (uno por línea)
+                            <textarea
+                              value={((draftMetadata.alternativeFlows as string[]) ?? []).join(
+                                '\n',
+                              )}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({
+                                  ...p,
+                                  alternativeFlows: e.target.value.split('\n').filter(Boolean),
+                                }))
+                              }
+                              rows={2}
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            />
+                          </label>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Postcondiciones (una por línea)
+                            <textarea
+                              value={((draftMetadata.postconditions as string[]) ?? []).join('\n')}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({
+                                  ...p,
+                                  postconditions: e.target.value.split('\n').filter(Boolean),
+                                }))
+                              }
+                              rows={2}
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            />
+                          </label>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Prioridad
+                            <select
+                              value={String(draftMetadata.priority ?? '')}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({
+                                  ...p,
+                                  priority: e.target.value || undefined,
+                                }))
+                              }
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            >
+                              <option value="">—</option>
+                              <option value="critical">Crítica</option>
+                              <option value="high">Alta</option>
+                              <option value="medium">Media</option>
+                              <option value="low">Baja</option>
+                            </select>
+                          </label>
+                        </>
+                      )}
+                      {draftTypeKey === 'business_rule' && (
+                        <>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Condición
+                            <textarea
+                              value={String(draftMetadata.condition ?? '')}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({ ...p, condition: e.target.value }))
+                              }
+                              rows={2}
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            />
+                          </label>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Acción
+                            <textarea
+                              value={String(draftMetadata.action ?? '')}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({ ...p, action: e.target.value }))
+                              }
+                              rows={2}
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            />
+                          </label>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Alcance
+                            <input
+                              type="text"
+                              value={String(draftMetadata.scope ?? '')}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({ ...p, scope: e.target.value }))
+                              }
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            />
+                          </label>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Excepciones (una por línea)
+                            <textarea
+                              value={((draftMetadata.exceptions as string[]) ?? []).join('\n')}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({
+                                  ...p,
+                                  exceptions: e.target.value.split('\n').filter(Boolean),
+                                }))
+                              }
+                              rows={2}
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            />
+                          </label>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Responsable
+                            <input
+                              type="text"
+                              value={String(draftMetadata.owner ?? '')}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({ ...p, owner: e.target.value }))
+                              }
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            />
+                          </label>
+                        </>
+                      )}
+                      {draftTypeKey === 'req_non_functional' && (
+                        <>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Categoría
+                            <select
+                              value={String(draftMetadata.category ?? 'other')}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({ ...p, category: e.target.value }))
+                              }
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            >
+                              <option value="performance">Rendimiento</option>
+                              <option value="security">Seguridad</option>
+                              <option value="usability">Usabilidad</option>
+                              <option value="availability">Disponibilidad</option>
+                              <option value="maintainability">Mantenibilidad</option>
+                              <option value="portability">Portabilidad</option>
+                              <option value="other">Otro</option>
+                            </select>
+                          </label>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Métrica
+                            <input
+                              type="text"
+                              value={String(draftMetadata.metric ?? '')}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({ ...p, metric: e.target.value }))
+                              }
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            />
+                          </label>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Umbral
+                            <input
+                              type="text"
+                              value={String(draftMetadata.threshold ?? '')}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({ ...p, threshold: e.target.value }))
+                              }
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            />
+                          </label>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Método de medición
+                            <textarea
+                              value={String(draftMetadata.measurementMethod ?? '')}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({
+                                  ...p,
+                                  measurementMethod: e.target.value,
+                                }))
+                              }
+                              rows={2}
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            />
+                          </label>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Prioridad
+                            <select
+                              value={String(draftMetadata.priority ?? '')}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({
+                                  ...p,
+                                  priority: e.target.value || undefined,
+                                }))
+                              }
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            >
+                              <option value="">—</option>
+                              <option value="critical">Crítica</option>
+                              <option value="high">Alta</option>
+                              <option value="medium">Media</option>
+                              <option value="low">Baja</option>
+                            </select>
+                          </label>
+                        </>
+                      )}
+                      {draftTypeKey === 'workflow' && (
+                        <>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Disparador
+                            <input
+                              type="text"
+                              value={String(draftMetadata.trigger ?? '')}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({ ...p, trigger: e.target.value }))
+                              }
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            />
+                          </label>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Pasos (uno por línea: "acción | actor | sistema")
+                            <textarea
+                              value={(
+                                (draftMetadata.steps as Array<{
+                                  action: string;
+                                  actor?: string;
+                                  system?: string;
+                                }>) ?? []
+                              )
+                                .map((s) =>
+                                  [s.action, s.actor, s.system].filter(Boolean).join(' | '),
+                                )
+                                .join('\n')}
+                              onChange={(e) => {
+                                const steps = e.target.value
+                                  .split('\n')
+                                  .filter(Boolean)
+                                  .map((line, i) => {
+                                    const parts = line.split('|').map((x) => x.trim());
+                                    return {
+                                      order: i + 1,
+                                      action: parts[0] ?? '',
+                                      actor: parts[1] || undefined,
+                                      system: parts[2] || undefined,
+                                    };
+                                  });
+                                setDraftMetadata((p) => ({ ...p, steps }));
+                              }}
+                              rows={4}
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            />
+                          </label>
+                          <label
+                            style={{
+                              display: 'block',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              marginBottom: 4,
+                            }}
+                          >
+                            Excepciones (una por línea)
+                            <textarea
+                              value={((draftMetadata.exceptions as string[]) ?? []).join('\n')}
+                              onChange={(e) =>
+                                setDraftMetadata((p) => ({
+                                  ...p,
+                                  exceptions: e.target.value.split('\n').filter(Boolean),
+                                }))
+                              }
+                              rows={2}
+                              style={{
+                                width: '100%',
+                                marginTop: 2,
+                                border: '1px solid var(--line-strong)',
+                                borderRadius: 6,
+                                padding: '4px 6px',
+                              }}
+                            />
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  )}
                   <div style={{ marginTop: 8 }}>
                     <MarkdownEditor
                       value={draftBody}
@@ -1196,6 +1783,29 @@ export function DocsView({
                     </option>
                   ))}
                 </select>
+              </label>
+              <label style={{ fontSize: 11, fontWeight: 600 }}>
+                Metadatos estructurados (JSON, opcional)
+                <textarea
+                  value={JSON.stringify(newMetadata, null, 2)}
+                  onChange={(e) => {
+                    try {
+                      setNewMetadata(JSON.parse(e.target.value || '{}') as Record<string, unknown>);
+                    } catch {
+                      /* JSON inválido: se ignora hasta corregir */
+                    }
+                  }}
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    marginTop: 4,
+                    border: '1px solid var(--line-strong)',
+                    borderRadius: 7,
+                    padding: '6px 8px',
+                    fontFamily: 'var(--mono)',
+                    fontSize: 12,
+                  }}
+                />
               </label>
               <label style={{ fontSize: 11, fontWeight: 600 }}>
                 Contenido Markdown

@@ -8,6 +8,7 @@ export type DbExecutor = Pick<Database, 'insert' | 'select' | 'update' | 'delete
 export interface ActivityInput {
   productId?: string | null;
   actorUserId?: string | null;
+  actorServiceAccountId?: string | null;
   action: string;
   entityKind?: string | null;
   entityId?: string | null;
@@ -32,8 +33,9 @@ export class ActivityService {
     try {
       await target.insert(activityLog).values({
         productId: input.productId ?? null,
-        actorType: input.actorUserId ? 'human' : 'system',
+        actorType: input.actorServiceAccountId ? 'agent' : input.actorUserId ? 'human' : 'system',
         actorUserId: input.actorUserId ?? null,
+        actorServiceAccountId: input.actorServiceAccountId ?? null,
         action: input.action,
         entityKind: input.entityKind ?? null,
         entityId: input.entityId ?? null,

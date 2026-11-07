@@ -16,13 +16,8 @@ import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
 
 const MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations');
-const DATABASE_URL = process.env.DATABASE_URL;
-if (!DATABASE_URL) {
-  console.error(
-    'DATABASE_URL no definida (p. ej. postgres://devcycle:devcycle@localhost:5432/devcycle)',
-  );
-  process.exit(1);
-}
+const DATABASE_URL =
+  process.env.DATABASE_URL ?? 'postgres://devcycle:devcycle@localhost:5432/devcycle';
 
 const sql = postgres(DATABASE_URL, { max: 1, onnotice: () => {} });
 

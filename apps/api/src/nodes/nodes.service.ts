@@ -32,6 +32,8 @@ interface NodeRow {
   nodeTypeId: string;
   code: string;
   name: string;
+  description: string | null;
+  objective: string | null;
   path: string;
   depth: number;
   position: number;
@@ -47,6 +49,8 @@ const nodeColumns = {
   nodeTypeId: productNodes.nodeTypeId,
   code: productNodes.code,
   name: productNodes.name,
+  description: productNodes.description,
+  objective: productNodes.objective,
   path: productNodes.path,
   depth: productNodes.depth,
   position: productNodes.position,
@@ -64,6 +68,12 @@ export interface NodeTypeInfo {
 }
 
 export type NodeDto = NodeRow & { nodeType: NodeTypeInfo };
+
+/** Normaliza texto funcional opcional: undefined/null/vacío → NULL (sin dato). */
+const normalizeFunctionalText = (value: string | null | undefined): string | null => {
+  const trimmed = value?.trim() ?? '';
+  return trimmed ? trimmed : null;
+};
 
 @Injectable()
 export class NodesService {
@@ -207,6 +217,8 @@ export class NodesService {
             nodeTypeId: type.id,
             code: input.code,
             name: input.name,
+            description: normalizeFunctionalText(input.description),
+            objective: normalizeFunctionalText(input.objective),
             path,
             depth,
             position: (maxRow?.max ?? -1) + 1,
@@ -256,6 +268,10 @@ export class NodesService {
   ): Promise<NodeDto> {
     const updates: Record<string, unknown> = { updatedAt: new Date() };
     if (input.name !== undefined) updates['name'] = input.name;
+    if (input.description !== undefined)
+      updates['description'] = normalizeFunctionalText(input.description);
+    if (input.objective !== undefined)
+      updates['objective'] = normalizeFunctionalText(input.objective);
     if (input.status !== undefined) updates['status'] = input.status;
     if (input.ownerId !== undefined) updates['ownerId'] = input.ownerId ?? null;
     if (input.position !== undefined) updates['position'] = input.position;
@@ -536,6 +552,8 @@ export class NodesService {
                 nodeTypeId: current.nodeTypeId,
                 code: newCode,
                 name: current.name,
+                description: current.description,
+                objective: current.objective,
                 path: newPath,
                 depth: newDepth,
                 position,

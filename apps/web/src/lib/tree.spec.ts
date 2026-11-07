@@ -15,6 +15,8 @@ const node = (
   parentId,
   code,
   name: code,
+  description: null,
+  objective: null,
   path: code.toLowerCase().replace(/-/g, '_'),
   depth: 0,
   position,

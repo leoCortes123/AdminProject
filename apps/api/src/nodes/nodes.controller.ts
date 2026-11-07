@@ -44,7 +44,9 @@ export class NodesController {
 
   @Patch(':code')
   @Permissions('nodes:write')
-  @ApiOperation({ summary: 'Actualiza nombre/estado/owner/posición (el código es inmutable)' })
+  @ApiOperation({
+    summary: 'Actualiza nombre/descripción/objetivo/estado/owner/posición (el código es inmutable)',
+  })
   update(
     @CurrentProduct() product: ResolvedProduct,
     @Param('code') code: string,

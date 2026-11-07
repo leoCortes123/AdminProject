@@ -1,0 +1,10 @@
+{
+  "extends": "@devcycle/config/tsconfig.nestjs.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "noEmit": true,
+    "verbatimModuleSyntax": false
+  },
+  "include": ["src"]
+}

@@ -255,10 +255,37 @@ export function AppShell({ children, products, me }: AppShellProps) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  const [tasksForPalette, setTasksForPalette] = useState<Array<{
+    id: string;
+    code: string | null;
+    title: string;
+    stateLabel: string;
+  }> | null>(null);
+  const [issuesForPalette, setIssuesForPalette] = useState<Array<{
+    id: string;
+    code: string | null;
+    title: string;
+    stateLabel: string;
+  }> | null>(null);
+  const [changesForPalette, setChangesForPalette] = useState<Array<{
+    id: string;
+    code: string | null;
+    title: string;
+    status: string;
+  }> | null>(null);
+  const [testsForPalette, setTestsForPalette] = useState<Array<{
+    id: string;
+    code: string | null;
+    title: string;
+  }> | null>(null);
   // Carga perezosa del árbol del producto actual para la paleta (Ctrl+K).
   useEffect(() => {
     setNodesForPalette(null);
     setDocsForPalette(null);
+    setTasksForPalette(null);
+    setIssuesForPalette(null);
+    setChangesForPalette(null);
+    setTestsForPalette(null);
   }, [slug]);
   useEffect(() => {
     if (!paletteOpen || !slug || nodesForPalette !== null) return;
@@ -278,6 +305,73 @@ export function AppShell({ children, products, me }: AppShellProps) {
       })
       .catch(() => {
         if (!cancelled) setDocsForPalette([]);
+      });
+    fetch(`/api/v1/products/${slug}/tasks`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then(
+        (
+          data: Array<{
+            id: string;
+            code: string | null;
+            title: string;
+            stateLabel: string;
+          }>,
+        ) => {
+          if (!cancelled) setTasksForPalette(data);
+        },
+      )
+      .catch(() => {
+        if (!cancelled) setTasksForPalette([]);
+      });
+    fetch(`/api/v1/products/${slug}/issues`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then(
+        (
+          data: Array<{
+            id: string;
+            code: string | null;
+            title: string;
+            stateLabel: string;
+          }>,
+        ) => {
+          if (!cancelled) setIssuesForPalette(data);
+        },
+      )
+      .catch(() => {
+        if (!cancelled) setIssuesForPalette([]);
+      });
+    fetch(`/api/v1/products/${slug}/changes`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then(
+        (
+          data: Array<{
+            id: string;
+            code: string | null;
+            title: string;
+            status: string;
+          }>,
+        ) => {
+          if (!cancelled) setChangesForPalette(data);
+        },
+      )
+      .catch(() => {
+        if (!cancelled) setChangesForPalette([]);
+      });
+    fetch(`/api/v1/products/${slug}/tests`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then(
+        (
+          data: Array<{
+            id: string;
+            code: string | null;
+            title: string;
+          }>,
+        ) => {
+          if (!cancelled) setTestsForPalette(data);
+        },
+      )
+      .catch(() => {
+        if (!cancelled) setTestsForPalette([]);
       });
     return () => {
       cancelled = true;
@@ -321,6 +415,41 @@ export function AppShell({ children, products, me }: AppShellProps) {
         keywords: `producto ${product.slug} ${product.name} documentación docs documento`,
         onSelect: () => router.push(`/products/${product.slug}/documentacion`),
       });
+      items.push({
+        id: `nav-${product.slug}-tareas`,
+        label: `${product.name} · Tareas`,
+        hint: 'Producto',
+        keywords: `producto ${product.slug} ${product.name} tareas kanban tablero`,
+        onSelect: () => router.push(`/products/${product.slug}/tareas`),
+      });
+      items.push({
+        id: `nav-${product.slug}-incidencias`,
+        label: `${product.name} · Incidencias`,
+        hint: 'Producto',
+        keywords: `producto ${product.slug} ${product.name} incidencias incidentes`,
+        onSelect: () => router.push(`/products/${product.slug}/incidencias`),
+      });
+      items.push({
+        id: `nav-${product.slug}-modificaciones`,
+        label: `${product.name} · Modificaciones`,
+        hint: 'Producto',
+        keywords: `producto ${product.slug} ${product.name} modificaciones cambios`,
+        onSelect: () => router.push(`/products/${product.slug}/modificaciones`),
+      });
+      items.push({
+        id: `nav-${product.slug}-trazabilidad`,
+        label: `${product.name} · Trazabilidad`,
+        hint: 'Producto',
+        keywords: `producto ${product.slug} ${product.name} trazabilidad relaciones grafo`,
+        onSelect: () => router.push(`/products/${product.slug}/trazabilidad`),
+      });
+      items.push({
+        id: `nav-${product.slug}-seguimiento`,
+        label: `${product.name} · Seguimiento`,
+        hint: 'Producto',
+        keywords: `producto ${product.slug} ${product.name} seguimiento avance cobertura actividad`,
+        onSelect: () => router.push(`/products/${product.slug}/seguimiento`),
+      });
     }
     if (currentProduct && nodesForPalette) {
       for (const node of nodesForPalette) {
@@ -345,14 +474,74 @@ export function AppShell({ children, products, me }: AppShellProps) {
         });
       }
     }
+    if (currentProduct && tasksForPalette) {
+      for (const task of tasksForPalette) {
+        items.push({
+          id: `task-${task.id}`,
+          label: `${task.code ?? 'Tarea'} · ${task.title}`,
+          hint: `${currentProduct.name} → ${task.stateLabel}`,
+          keywords: `${task.code ?? ''} ${task.title} ${task.stateLabel}`,
+          onSelect: () => router.push(`/products/${currentProduct.slug}/tareas`),
+        });
+      }
+    }
+    if (currentProduct && issuesForPalette) {
+      for (const issue of issuesForPalette) {
+        items.push({
+          id: `issue-${issue.id}`,
+          label: `${issue.code ?? 'Incidencia'} · ${issue.title}`,
+          hint: `${currentProduct.name} → ${issue.stateLabel}`,
+          keywords: `${issue.code ?? ''} ${issue.title} ${issue.stateLabel}`,
+          onSelect: () => router.push(`/products/${currentProduct.slug}/incidencias`),
+        });
+      }
+    }
+    if (currentProduct && changesForPalette) {
+      for (const change of changesForPalette) {
+        items.push({
+          id: `change-${change.id}`,
+          label: `${change.code ?? 'Modificación'} · ${change.title}`,
+          hint: `${currentProduct.name} → ${change.status === 'executed' ? 'Ejecutada' : 'Propuesta'}`,
+          keywords: `${change.code ?? ''} ${change.title} modificaciones cambios`,
+          onSelect: () => router.push(`/products/${currentProduct.slug}/modificaciones`),
+        });
+      }
+    }
+    if (currentProduct && testsForPalette) {
+      for (const testCase of testsForPalette) {
+        items.push({
+          id: `test-${testCase.id}`,
+          label: `${testCase.code ?? 'Caso de prueba'} · ${testCase.title}`,
+          hint: `${currentProduct.name} → Pruebas`,
+          keywords: `${testCase.code ?? ''} ${testCase.title} pruebas test trazabilidad`,
+          onSelect: () => router.push(`/products/${currentProduct.slug}/trazabilidad`),
+        });
+      }
+    }
     return items;
-  }, [products, currentProduct, nodesForPalette, docsForPalette, router]);
+  }, [
+    products,
+    currentProduct,
+    nodesForPalette,
+    docsForPalette,
+    tasksForPalette,
+    issuesForPalette,
+    changesForPalette,
+    testsForPalette,
+    router,
+  ]);
 
   const viewLabel = useMemo(() => {
     if (pathname === '/products') return 'Productos';
     if (/\/resumen$/.test(pathname)) return 'Resumen';
     if (/\/arbol$/.test(pathname)) return 'Arquitectura funcional';
     if (/\/documentacion$/.test(pathname)) return 'Documentación';
+    if (/\/tareas$/.test(pathname)) return 'Tareas';
+    if (/\/incidencias$/.test(pathname)) return 'Incidencias';
+    if (/\/modificaciones$/.test(pathname)) return 'Modificaciones';
+    if (/\/trazabilidad$/.test(pathname)) return 'Trazabilidad';
+    if (/\/seguimiento$/.test(pathname)) return 'Seguimiento';
+    if (/\/integraciones$/.test(pathname)) return 'Integraciones y agentes';
     return 'Vista';
   }, [pathname]);
 
@@ -444,12 +633,20 @@ export function AppShell({ children, products, me }: AppShellProps) {
               {navItem(`/products/${slug}/resumen`, NAV_ICON.resumen, 'Resumen')}
               {navItem(`/products/${slug}/arbol`, NAV_ICON.arbol, 'Arquitectura funcional')}
               {navItem(`/products/${slug}/documentacion`, NAV_ICON.docs, 'Documentación')}
-              {navItem(null, NAV_ICON.tareas, 'Tareas')}
-              {navItem(null, NAV_ICON.incidencias, 'Incidencias')}
-              {navItem(null, NAV_ICON.modificaciones, 'Modificaciones')}
-              {navItem(null, NAV_ICON.trazabilidad, 'Trazabilidad')}
-              {navItem(null, NAV_ICON.seguimiento, 'Seguimiento')}
-              {navItem(null, NAV_ICON.agentes, 'Agentes IA')}
+              {navItem(`/products/${slug}/tareas`, NAV_ICON.tareas, 'Tareas')}
+              {navItem(`/products/${slug}/incidencias`, NAV_ICON.incidencias, 'Incidencias')}
+              {navItem(
+                `/products/${slug}/modificaciones`,
+                NAV_ICON.modificaciones,
+                'Modificaciones',
+              )}
+              {navItem(`/products/${slug}/trazabilidad`, NAV_ICON.trazabilidad, 'Trazabilidad')}
+              {navItem(`/products/${slug}/seguimiento`, NAV_ICON.seguimiento, 'Seguimiento')}
+              {navItem(
+                `/products/${slug}/integraciones`,
+                NAV_ICON.agentes,
+                'Integraciones y agentes',
+              )}
             </>
           )}
 
@@ -486,7 +683,7 @@ export function AppShell({ children, products, me }: AppShellProps) {
             Cerrar sesión
           </button>
           <div style={{ marginTop: 8 }}>
-            <strong>DevCycle v0.2 · Fase 2</strong>
+            <strong>DevCycle v0.6 · Fase 6a</strong>
             <br />
             {me.user.name} · {ROLE_LABELS[roleKey] ?? roleKey}
           </div>

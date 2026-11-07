@@ -18,4 +18,16 @@ export interface AuthenticatedRequest extends Request {
   user: AuthUser;
   session: unknown;
   product?: ResolvedProduct;
+  /** Agente de integración tras IntegrationTokenGuard (rutas `/integration/*`). */
+  agent?: AgentContext;
+}
+
+export interface AgentContext {
+  tokenId: string;
+  serviceAccountId: string;
+  productId: string;
+  slug: string;
+  name: string;
+  agentName: string;
+  scopes: string[];
 }

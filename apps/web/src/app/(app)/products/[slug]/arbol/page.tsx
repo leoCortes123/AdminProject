@@ -28,11 +28,16 @@ export default async function ArbolPage({
   const nodes = await apiFetch<ProductNode[]>(`/api/v1/products/${slug}/nodes`).catch(
     () => [] as ProductNode[],
   );
+
+  const role = product.role ?? 'viewer';
+  const canWrite = ['admin_global', 'admin_product', 'collaborator'].includes(role);
+
   return (
     <ArbolView
       productName={product.name}
       productSlug={slug}
       nodes={nodes}
+      canWrite={canWrite}
       {...(node ? { initialNodeCode: node } : {})}
     />
   );

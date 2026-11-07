@@ -65,13 +65,50 @@ export async function createNestApp(): Promise<NestExpressApplication> {
     .setDescription(
       'API de DevCycle — plataforma de gestión del ciclo de vida del software. ' +
         'Autenticación: cookie HttpOnly `better-auth.session_token` (login vía /api/auth/*). ' +
-        'Errores: application/problem+json (RFC 9457).',
+        'Errores: application/problem+json (RFC 9457). ' +
+        'La API de integración (agentes/MCP) se documenta en `/api/v1/docs/integration`.',
     )
     .setVersion('1.0')
     .addCookieAuth('better-auth.session_token')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'API token',
+        description:
+          'Token de servicio por producto (F6a): `Authorization: Bearer dvc_…`. ' +
+          'El token se crea desde la UI (Configuración → Integraciones) o ' +
+          'POST /products/:slug/integration/tokens. El servidor MCP lo pasa como `--token`.',
+      },
+      'service-token',
+    )
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/v1/docs', app, document);
+
+  // OpenAPI separado integration-v1 (F6a-T02): mismo app, documento etiquetado
+  // `integration` / `integration-admin`. El cliente MCP filtra por tag.
+  const integrationConfig = new DocumentBuilder()
+    .setTitle('DevCycle Integration API (integration-v1)')
+    .setDescription(
+      'API de integración read-only para agentes externos y el servidor MCP. ' +
+        'Autenticación: `Authorization: Bearer dvc_…` (scope por endpoint). ' +
+        'Todas las llamadas se auditan en `agent_executions` + `activity_log` ' +
+        '(actor_type=agent). Sin sesión web. Ver docs/planificacion/06-integraciones-agentes.md.',
+    )
+    .setVersion('integration-v1')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'API token',
+        description: 'Token de servicio `dvc_…` con scopes `read:*` (F6a).',
+      },
+      'service-token',
+    )
+    .build();
+  const integrationDocument = SwaggerModule.createDocument(app, integrationConfig);
+  SwaggerModule.setup('api/v1/docs/integration', app, integrationDocument);
 
   return app;
 }

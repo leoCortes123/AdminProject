@@ -81,20 +81,22 @@
 
 **product_nodes**
 
-| Columna                            | Tipo                                                                | Notas                                                     |
-| ---------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------- |
-| id                                 | uuid PK (v7)                                                        |                                                           |
-| product_id                         | uuid NOT NULL → products                                            |                                                           |
-| parent_id                          | uuid NULL → product_nodes(id, product_id)                           | FK compuesta                                              |
-| node_type_id                       | uuid NOT NULL → node_types                                          |                                                           |
-| code                               | text NOT NULL                                                       | `PANT-02` único por producto: UNIQUE `(product_id, code)` |
-| name                               | text NOT NULL                                                       |                                                           |
-| path                               | `ltree NOT NULL`                                                    | materializa jerarquía (ver §5)                            |
-| depth                              | int NOT NULL DEFAULT 0                                              |                                                           |
-| position                           | int NOT NULL                                                        | hermano orden                                             |
-| status                             | text CHECK (`planned`,`in_progress`,`done`,`deprecated`,`disabled`) |                                                           |
-| owner_id                           | uuid NULL → users                                                   | responsable funcional                                     |
-| created_at, updated_at, deleted_at | timestamptz                                                         | desactivar = soft-delete                                  |
+| Columna                            | Tipo                                                                | Notas                                                         |
+| ---------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------- |
+| id                                 | uuid PK (v7)                                                        |                                                               |
+| product_id                         | uuid NOT NULL → products                                            |                                                               |
+| parent_id                          | uuid NULL → product_nodes(id, product_id)                           | FK compuesta                                                  |
+| node_type_id                       | uuid NOT NULL → node_types                                          |                                                               |
+| code                               | text NOT NULL                                                       | `PANT-02` único por producto: UNIQUE `(product_id, code)`     |
+| name                               | text NOT NULL                                                       |                                                               |
+| description                        | text NULL                                                           | descripción funcional breve (ficha · Resumen, migración 0008) |
+| objective                          | text NULL                                                           | objetivo funcional (ficha · Funcionalidad, migración 0008)    |
+| path                               | `ltree NOT NULL`                                                    | materializa jerarquía (ver §5)                                |
+| depth                              | int NOT NULL DEFAULT 0                                              |                                                               |
+| position                           | int NOT NULL                                                        | hermano orden                                                 |
+| status                             | text CHECK (`planned`,`in_progress`,`done`,`deprecated`,`disabled`) |                                                               |
+| owner_id                           | uuid NULL → users                                                   | responsable funcional                                         |
+| created_at, updated_at, deleted_at | timestamptz                                                         | desactivar = soft-delete                                      |
 
 **Restricciones:** un nodo raíz tiene `parent_id IS NULL`; mover = transacción: actualizar parent+path en todo el subárbol (UPDATE recursivo acotado). **Cero ciclos** validado antes de aplicar (DFS). **Índice único parcial** `(product_id, code) WHERE deleted_at IS NULL`.
 

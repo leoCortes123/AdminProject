@@ -14,6 +14,10 @@ import { NodesModule } from './nodes/nodes.module';
 import { DocumentsModule } from './documents/documents.module';
 import { AttachmentsModule } from './attachments/attachments.module';
 import { SearchModule } from './search/search.module';
+import { WorkModule } from './work/work.module';
+import { TraceModule } from './trace/trace.module';
+import { FollowupModule } from './followup/followup.module';
+import { IntegrationModule } from './integration-api/integration.module';
 
 const env = getEnv();
 
@@ -43,6 +47,10 @@ const env = getEnv();
     DocumentsModule,
     AttachmentsModule,
     SearchModule,
+    WorkModule,
+    TraceModule,
+    FollowupModule,
+    IntegrationModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: SessionGuard },
