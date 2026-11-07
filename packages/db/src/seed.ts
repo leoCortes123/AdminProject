@@ -395,10 +395,86 @@ async function seedDemo() {
     0,
   );
 
+  await seedDemoDocs(kanora);
+
   console.info('Demo OK: organización "Acme & Co" y productos kanora · verdana · nucleo.');
   console.info(
     'Registra el primer usuario en la app: recibirá el rol admin_global automáticamente.',
   );
+}
+
+/**
+ * Documentos demo de Kanora (Fase 2, idempotentes por código): uno vigente
+ * multi-nodo (spec v2), un caso de uso vigente y una regla en revisión.
+ * Los códigos coinciden con el mockup (muckup/js/data.js).
+ */
+async function seedDemoDocs(kanora: string) {
+  const docs = [
+    {
+      code: 'DOC-101',
+      title: 'Especificación funcional — Ficha de producto',
+      typeKey: 'spec',
+      status: 'published',
+      version: 2,
+      body: '# Ficha de producto\n\nEspecificación vigente del módulo Catálogo.\n\n## Criterios de aceptación\n\n- Visualizar variantes sin reordenar filas.\n- Guardar cambios con concurrencia optimista (409 si otro guardó antes).\n',
+      snapshots: [
+        '# Ficha de producto\n\nBorrador inicial de la especificación.',
+        '# Ficha de producto\n\nEspecificación vigente del módulo Catálogo.\n\n## Criterios de aceptación\n\n- Visualizar variantes sin reordenar filas.\n- Guardar cambios con concurrencia optimista (409 si otro guardó antes).\n',
+      ],
+      nodes: ['MODULO-01', 'PANT-02'],
+    },
+    {
+      code: 'DOC-118',
+      title: 'Caso de uso — Asignar pedido a ruta óptima',
+      typeKey: 'use_case',
+      status: 'published',
+      version: 1,
+      body: '# Asignar pedido a ruta óptima\n\nActor: operario de operaciones.\n\nFlujo principal y alternativos del caso de uso CU-014.\n',
+      snapshots: [
+        '# Asignar pedido a ruta óptima\n\nActor: operario de operaciones.\n\nFlujo principal y alternativos del caso de uso CU-014.\n',
+      ],
+      nodes: ['PANT-02'],
+    },
+    {
+      code: 'DOC-124',
+      title: 'Regla de negocio RN-014 — Reasignación máxima 2 veces',
+      typeKey: 'business_rule',
+      status: 'in_review',
+      version: 1,
+      body: '# Regla de negocio RN-014\n\nUn pedido solo puede reasignarse 2 veces. En revisión por operaciones.\n',
+      snapshots: [
+        '# Regla de negocio RN-014\n\nUn pedido solo puede reasignarse 2 veces. En revisión por operaciones.\n',
+      ],
+      nodes: ['MODULO-02'],
+    },
+  ] as const;
+
+  for (const doc of docs) {
+    const [type] = await sql<
+      { id: string }[]
+    >`SELECT id FROM document_types WHERE key = ${doc.typeKey}`;
+    const [existing] = await sql<{ id: string }[]>`
+      SELECT id FROM content_items WHERE product_id = ${kanora} AND code = ${doc.code} LIMIT 1`;
+    if (existing) continue;
+    const [item] = await sql<{ id: string }[]>`
+      INSERT INTO content_items (product_id, doc_type_id, code, title, body_markdown, status, version)
+      VALUES (${kanora}, ${type!.id}, ${doc.code}, ${doc.title}, ${doc.body}, ${doc.status}, ${doc.version})
+      ON CONFLICT DO NOTHING
+      RETURNING id`;
+    if (!item) continue;
+    for (let i = 0; i < doc.snapshots.length; i++) {
+      await sql`INSERT INTO item_versions (item_id, version, title, body_markdown, change_note)
+                VALUES (${item.id}, ${i + 1}, ${doc.title}, ${doc.snapshots[i]!}, ${i === 0 ? 'Seed demo' : 'Publicación demo'})
+                ON CONFLICT DO NOTHING`;
+    }
+    for (const nodeCode of doc.nodes) {
+      await sql`INSERT INTO item_node_links (item_id, node_id, product_id)
+                SELECT ${item.id}, n.id, ${kanora} FROM product_nodes n
+                WHERE n.product_id = ${kanora} AND n.code = ${nodeCode} AND n.deleted_at IS NULL
+                ON CONFLICT DO NOTHING`;
+    }
+  }
+  console.info('Documentos demo OK (DOC-101 · DOC-118 · DOC-124 en kanora).');
 }
 
 async function main() {

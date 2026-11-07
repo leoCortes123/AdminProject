@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import {
+  DOCUMENT_SCOPES,
+  DOCUMENT_STATUSES,
   ENTITY_KINDS,
   NODE_STATUSES,
   NODE_TYPE_KEYS,
@@ -19,6 +21,14 @@ export const taskTypeSchema = z.enum(TASK_TYPES);
 export const roleKeySchema = z.enum(ROLE_KEYS);
 export const entityKindSchema = z.enum(ENTITY_KINDS);
 export const relationTypeSchema = z.enum(RELATION_TYPES);
+export const documentStatusSchema = z.enum(DOCUMENT_STATUSES);
+export const documentScopeSchema = z.enum(DOCUMENT_SCOPES);
+
+/** Código documental opcional (DOC-101, CU-014, RN-014…); único por producto. */
+export const documentCodeSchema = z
+  .string()
+  .trim()
+  .regex(/^[A-Z][A-Z0-9_]{0,15}-[0-9]{1,6}$/, 'código tipo DOC-101');
 
 /** Paginación cursor: `?cursor=<opaque>&limit=<n>` (máx 100). */
 export const cursorPageSchema = z.object({
@@ -80,3 +90,84 @@ export const updateNodeSchema = z
     message: 'Al menos un campo debe ser actualizado',
   });
 export type UpdateNodeInput = z.infer<typeof updateNodeSchema>;
+
+// ---------------------------------------------------------------------------
+// Documentación (Fase 2 · F2-T02…T07)
+// ---------------------------------------------------------------------------
+
+export const createDocumentSchema = z.object({
+  docTypeKey: z.string().trim().min(1).max(60),
+  code: documentCodeSchema.nullish(),
+  title: z.string().trim().min(1).max(500),
+  bodyMarkdown: z.string().max(200_000).default(''),
+  scope: documentScopeSchema.default('node'),
+  /** Códigos de nodos a vincular al crear (validados en el servicio). */
+  nodeCodes: z.array(z.string().trim().min(1).max(32)).max(50).default([]),
+});
+export type CreateDocumentInput = z.infer<typeof createDocumentSchema>;
+
+/**
+ * Edición de un documento (F2-T02). `bodyMarkdown`/`title` actualizan el
+ * trabajo en curso; la snapshot versionada se crea con POST `/:id/versions`
+ * o al publicar. `expectedVersion` (opcional) habilita optimistic locking.
+ */
+export const updateDocumentSchema = z
+  .object({
+    docTypeKey: z.string().trim().min(1).max(60).optional(),
+    title: z.string().trim().min(1).max(500).optional(),
+    bodyMarkdown: z.string().max(200_000).optional(),
+    scope: documentScopeSchema.optional(),
+    expectedVersion: z.number().int().min(1).optional(),
+  })
+  .refine((data) => Object.values(data).some((value) => value !== undefined), {
+    message: 'Al menos un campo debe ser actualizado',
+  });
+export type UpdateDocumentInput = z.infer<typeof updateDocumentSchema>;
+
+export const transitionDocumentSchema = z.object({
+  toStatus: documentStatusSchema,
+});
+export type TransitionDocumentInput = z.infer<typeof transitionDocumentSchema>;
+
+export const publishDocumentSchema = z.object({
+  changeNote: z.string().trim().max(1000).optional(),
+});
+export type PublishDocumentInput = z.infer<typeof publishDocumentSchema>;
+
+/** Snapshot versionado (F2-T03). Si se omite título/cuerpo se congela el estado actual. */
+export const createVersionSchema = z.object({
+  title: z.string().trim().min(1).max(500).optional(),
+  bodyMarkdown: z.string().max(200_000).optional(),
+  changeNote: z.string().trim().max(1000).optional(),
+  expectedVersion: z.number().int().min(1).optional(),
+});
+export type CreateVersionInput = z.infer<typeof createVersionSchema>;
+
+export const linkNodeSchema = z.object({
+  nodeCode: z.string().trim().min(1).max(32),
+});
+export type LinkNodeInput = z.infer<typeof linkNodeSchema>;
+
+export const createRelationSchema = z.object({
+  targetId: uuidSchema,
+  relationType: relationTypeSchema,
+  metadata: z.record(z.unknown()).optional(),
+});
+export type CreateRelationInput = z.infer<typeof createRelationSchema>;
+
+/** Búsqueda FTS (F2-T07) — `kinds` queda abierto para el global de Fase 5. */
+export const searchQuerySchema = z.object({
+  q: z.string().trim().min(1).max(300),
+  kinds: z.string().trim().max(100).default('document'),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+export type SearchQueryInput = z.infer<typeof searchQuerySchema>;
+
+export const listDocumentsQuerySchema = z.object({
+  docTypeKey: z.string().trim().max(60).optional(),
+  status: documentStatusSchema.optional(),
+  scope: documentScopeSchema.optional(),
+  nodeCode: z.string().trim().max(32).optional(),
+  q: z.string().trim().max(300).optional(),
+});
+export type ListDocumentsQueryInput = z.infer<typeof listDocumentsQuerySchema>;

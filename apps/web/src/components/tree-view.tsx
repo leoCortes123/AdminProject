@@ -4,7 +4,20 @@ import { useEffect, useMemo, useState } from 'react';
 import { Tabs, Tree, EmptyState, Pill, collectExpandableIds, type TreeItem } from '@devcycle/ui';
 import { buildTree } from '@/lib/tree';
 import { nodeStatusLabel, nodeStatusTone, timeAgo } from '@/lib/format';
-import type { ProductNode } from '@/lib/types';
+import type { DocumentItem, ProductNode } from '@/lib/types';
+
+const DOC_STATUS_LABEL: Record<string, string> = {
+  draft: 'Borrador',
+  in_review: 'En revisión',
+  published: 'Vigente',
+  archived: 'Archivado',
+};
+const DOC_STATUS_TONE: Record<string, 'neutral' | 'warn' | 'ok'> = {
+  draft: 'neutral',
+  in_review: 'warn',
+  published: 'ok',
+  archived: 'neutral',
+};
 
 const FICHA_TABS = [
   { id: 'resumen', label: 'Resumen' },
@@ -18,10 +31,12 @@ const FICHA_TABS = [
 
 function TreePage({
   productName,
+  productSlug,
   nodes,
   initialNodeCode,
 }: {
   productName: string;
+  productSlug: string;
   nodes: ProductNode[];
   initialNodeCode?: string;
 }) {
@@ -32,6 +47,7 @@ function TreePage({
   const [expandedIds, setExpandedIds] = useState<Set<string>>(() =>
     collectExpandableIds(buildTree(nodes)),
   );
+  const [nodeDocs, setNodeDocs] = useState<DocumentItem[]>([]);
 
   // Tipos presentes (para el filtro), con conteo.
   const typeCounts = useMemo(() => {
@@ -64,6 +80,26 @@ function TreePage({
       window.history.replaceState(null, '', window.location.pathname);
     }
   }, [selectedCode, visibleNodes]);
+
+  // Documentos del nodo seleccionado (pestaña Documentación, F2-T08).
+  useEffect(() => {
+    setNodeDocs([]);
+    if (!selectedCode) return;
+    let cancelled = false;
+    fetch(`/api/v1/products/${productSlug}/nodes/${encodeURIComponent(selectedCode)}/documents`, {
+      credentials: 'same-origin',
+    })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: DocumentItem[]) => {
+        if (!cancelled) setNodeDocs(data);
+      })
+      .catch(() => {
+        if (!cancelled) setNodeDocs([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCode, productSlug]);
 
   const selectNode = (node: TreeItem) => {
     setSelectedCode(node.code ?? null);
@@ -239,7 +275,9 @@ function TreePage({
               </div>
 
               <Tabs
-                tabs={FICHA_TABS}
+                tabs={FICHA_TABS.map((tab) =>
+                  tab.id === 'documentacion' ? { ...tab, badge: nodeDocs.length } : tab,
+                )}
                 activeId={activeTab}
                 onChange={setActiveTab}
                 ariaLabel="Secciones de la ficha"
@@ -280,10 +318,58 @@ function TreePage({
               )}
               {activeTab === 'documentacion' && (
                 <div className="tab-panel active" role="tabpanel" id="panel-documentacion">
-                  <EmptyState
-                    title="0 documentos vinculados"
-                    description="La documentación (13 tipos, versionada y vinculada a este nodo) llega con la Fase 2."
-                  />
+                  {nodeDocs.length === 0 ? (
+                    <EmptyState
+                      title="Sin documentos vinculados"
+                      description="Vincula una especificación, caso de uso o regla de negocio a este nodo desde Documentación."
+                      action={
+                        <a
+                          className="btn btn-sm"
+                          href={`/products/${productSlug}/documentacion`}
+                          style={{ textDecoration: 'none' }}
+                        >
+                          Ir a Documentación
+                        </a>
+                      }
+                    />
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {nodeDocs.map((doc) => (
+                          <a
+                            key={doc.id}
+                            href={`/products/${productSlug}/documentacion?doc=${doc.id}`}
+                            className="doc-item"
+                            style={{ textDecoration: 'none', color: 'inherit' }}
+                          >
+                            <div className="doc-icon" aria-hidden="true">
+                              MD
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <h4>{doc.title}</h4>
+                              <small>
+                                {doc.code ?? 'sin código'} · {doc.docTypeLabel} · v{doc.version}
+                              </small>
+                              <br />
+                              <small>{new Date(doc.updatedAt).toLocaleDateString('es-ES')}</small>
+                            </div>
+                            <span className="pill" style={{ marginLeft: 'auto' }}>
+                              <span className={`pill-${DOC_STATUS_TONE[doc.status] ?? 'neutral'}`}>
+                                {DOC_STATUS_LABEL[doc.status] ?? doc.status}
+                              </span>
+                            </span>
+                          </a>
+                        ))}
+                      </div>
+                      <a
+                        className="btn btn-sm"
+                        href={`/products/${productSlug}/documentacion`}
+                        style={{ textDecoration: 'none', marginTop: 8 }}
+                      >
+                        + Adjuntar documento a este nodo
+                      </a>
+                    </>
+                  )}
                 </div>
               )}
               {activeTab === 'tareas' && (
@@ -335,13 +421,20 @@ function TreePage({
 
 export function ArbolView({
   productName,
+  productSlug,
   nodes,
   initialNodeCode,
 }: {
   productName: string;
+  productSlug: string;
   nodes: ProductNode[];
   initialNodeCode?: string;
 }) {
-  const props = { productName, nodes, ...(initialNodeCode ? { initialNodeCode } : {}) };
+  const props = {
+    productName,
+    productSlug,
+    nodes,
+    ...(initialNodeCode ? { initialNodeCode } : {}),
+  };
   return <TreePage {...props} />;
 }

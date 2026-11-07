@@ -5,7 +5,8 @@
  *
  * Migración 001 (F1-T02): extensiones, identidad/organización, productos,
  * RBAC, árbol funcional, catálogos (document_types, workflow_states), activity_log.
- * Modelos F2+ (content_items, relations, tasks…) llegan en migraciones 002+.
+ * Migración 002 (Fase 2, F2-T01): content_items, item_versions, item_node_links,
+ * relations base, comments base, attachments.
  */
 import { sql } from 'drizzle-orm';
 import {
@@ -32,6 +33,11 @@ const citext = customType<{ data: string }>({
 /** ltree — materialized path del árbol funcional (extensión ltree). */
 const ltree = customType<{ data: string }>({
   dataType: () => 'ltree',
+});
+
+/** tsvector — columna FTS mantenida por trigger (to_tsvector no es IMMUTABLE). */
+const tsvector = customType<{ data: string }>({
+  dataType: () => 'tsvector',
 });
 
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true, mode: 'date' });
@@ -302,6 +308,170 @@ export const stateTransitions = pgTable(
     requiresConfirmation: boolean('requires_confirmation').notNull().default(false),
   },
   (t) => [check('state_transitions_scope_check', sql`${t.scope} IN ('task','issue')`)],
+);
+
+// ---------------------------------------------------------------------------
+// Documentación (Fase 2 · M-03 — migración 0003_documents)
+// ---------------------------------------------------------------------------
+
+export const contentItems = pgTable(
+  'content_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id),
+    docTypeId: uuid('doc_type_id')
+      .notNull()
+      .references(() => documentTypes.id),
+    code: text('code'),
+    title: text('title').notNull(),
+    bodyMarkdown: text('body_markdown').notNull().default(''),
+    status: text('status').notNull().default('draft'),
+    scope: text('scope').notNull().default('node'),
+    version: integer('version').notNull().default(1),
+    searchTsv: tsvector('search_tsv'),
+    createdBy: text('created_by').references(() => users.id),
+    updatedBy: text('updated_by').references(() => users.id),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+    deletedAt: timestamptz('deleted_at'),
+  },
+  (t) => [
+    check(
+      'content_items_status_check',
+      sql`${t.status} IN ('draft','in_review','published','archived')`,
+    ),
+    check('content_items_scope_check', sql`${t.scope} IN ('node','global')`),
+    uniqueIndex('content_items_id_product_uq').on(t.id, t.productId),
+    uniqueIndex('content_items_code_active_uq')
+      .on(t.productId, t.code)
+      .where(sql`${t.deletedAt} IS NULL AND ${t.code} IS NOT NULL`),
+    index('content_items_product_type_status_idx').on(t.productId, t.docTypeId, t.status),
+  ],
+);
+
+export const itemVersions = pgTable(
+  'item_versions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    itemId: uuid('item_id')
+      .notNull()
+      .references(() => contentItems.id, { onDelete: 'restrict' }),
+    version: integer('version').notNull(),
+    title: text('title').notNull(),
+    bodyMarkdown: text('body_markdown').notNull(),
+    authorId: text('author_id').references(() => users.id),
+    changeNote: text('change_note'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('item_versions_item_version_uq').on(t.itemId, t.version),
+    index('item_versions_item_version_idx').on(t.itemId, t.version),
+  ],
+);
+
+export const itemNodeLinks = pgTable(
+  'item_node_links',
+  {
+    itemId: uuid('item_id')
+      .notNull()
+      .references(() => contentItems.id, { onDelete: 'cascade' }),
+    nodeId: uuid('node_id')
+      .notNull()
+      .references(() => productNodes.id, { onDelete: 'cascade' }),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.itemId, t.nodeId] }),
+    index('item_node_links_node_idx').on(t.nodeId),
+  ],
+);
+
+export const relations = pgTable(
+  'relations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id),
+    sourceKind: text('source_kind').notNull(),
+    sourceId: uuid('source_id').notNull(),
+    targetKind: text('target_kind').notNull(),
+    targetId: uuid('target_id').notNull(),
+    relationType: text('relation_type').notNull(),
+    metadata: jsonb('metadata')
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdBy: text('created_by').references(() => users.id),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    check(
+      'relations_source_kind_check',
+      sql`${t.sourceKind} IN ('node','item','task','issue','change','test_case')`,
+    ),
+    check(
+      'relations_target_kind_check',
+      sql`${t.targetKind} IN ('node','item','task','issue','change','test_case')`,
+    ),
+    check(
+      'relations_type_check',
+      sql`${t.relationType} IN ('affects','documents','specifies','implements','resolves','blocks','is_blocked_by','verifies','depends_on','relates_to','modifies','references','applies_rule')`,
+    ),
+    uniqueIndex('relations_unique_uq').on(
+      t.productId,
+      t.sourceKind,
+      t.sourceId,
+      t.targetKind,
+      t.targetId,
+      t.relationType,
+    ),
+    index('relations_source_idx').on(t.sourceKind, t.sourceId),
+    index('relations_target_idx').on(t.targetKind, t.targetId),
+    index('relations_product_type_idx').on(t.productId, t.relationType),
+  ],
+);
+
+export const comments = pgTable(
+  'comments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id),
+    parentKind: text('parent_kind').notNull(),
+    parentId: uuid('parent_id').notNull(),
+    authorId: text('author_id').references(() => users.id),
+    body: text('body').notNull(),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+    deletedAt: timestamptz('deleted_at'),
+  },
+  (t) => [index('comments_parent_idx').on(t.parentKind, t.parentId, t.createdAt)],
+);
+
+export const attachments = pgTable(
+  'attachments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id),
+    ownerKind: text('owner_kind').notNull(),
+    ownerId: uuid('owner_id').notNull(),
+    storageKey: text('storage_key').notNull().unique(),
+    filename: text('filename').notNull(),
+    mimeType: text('mime_type').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    sha256: text('sha256').notNull(),
+    uploadedBy: text('uploaded_by').references(() => users.id),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [index('attachments_owner_idx').on(t.ownerKind, t.ownerId)],
 );
 
 // ---------------------------------------------------------------------------

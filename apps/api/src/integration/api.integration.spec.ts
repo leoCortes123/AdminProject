@@ -252,3 +252,258 @@ describe('DevCycle API (integración · PG efímero)', () => {
     await assertTreeInvariants(adminAgent, 'itest-fuzz');
   }, 900_000);
 });
+
+describe('DevCycle Documentación F2 (integración · PG efímero)', () => {
+  let collaboratorAgent: request.Agent;
+  let docId: string;
+  let doc2Id: string;
+  const nodeCode = 'PANT-51';
+  const PNG_MINIMAL = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0]);
+
+  beforeAll(async () => {
+    collaboratorAgent = request.agent(app.getHttpServer());
+    const signupCollab = await collaboratorAgent.post('/api/auth/sign-up/email').send({
+      name: 'Collab Docs',
+      email: 'docs-collab@itest.dev',
+      password: 'itest-password-123',
+    });
+    expect(signupCollab.status).toBe(200);
+
+    for (const slug of ['itest-docs-alpha', 'itest-docs-beta']) {
+      const res = await adminAgent
+        .post('/api/v1/products')
+        .send({ name: `Docs ${slug}`, slug, techStack: ['NestJS'] });
+      expect(res.status).toBe(201);
+    }
+    const mod = await adminAgent
+      .post('/api/v1/products/itest-docs-alpha/nodes')
+      .send({ parentId: null, nodeTypeKey: 'modulo', code: 'MOD-51', name: 'Módulo docs' });
+    expect(mod.status).toBe(201);
+    const pant = await adminAgent.post('/api/v1/products/itest-docs-alpha/nodes').send({
+      parentId: mod.body.id,
+      nodeTypeKey: 'pantalla',
+      code: nodeCode,
+      name: 'Pantalla docs',
+    });
+    expect(pant.status).toBe(201);
+  }, 120_000);
+
+  it('catálogo: 13 tipos documentales (incluye adr)', async () => {
+    const res = await adminAgent.get('/api/v1/products/itest-docs-alpha/documents/types');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(13);
+    expect(res.body.map((t: { key: string }) => t.key)).toContain('adr');
+  });
+
+  it('CRUD: crear documento vinculado a nodo visible en ambos lados', async () => {
+    const created = await adminAgent.post('/api/v1/products/itest-docs-alpha/documents').send({
+      docTypeKey: 'spec',
+      code: 'DOC-051',
+      title: 'Especificación funcional — Asignación de pedidos',
+      bodyMarkdown: '# Asignación\n\nConsolidar pedidos en rutas óptimas.',
+      nodeCodes: [nodeCode],
+    });
+    expect(created.status).toBe(201);
+    expect(created.body.status).toBe('draft');
+    expect(created.body.version).toBe(1);
+    expect(created.body.nodeCodes).toContain(nodeCode);
+    docId = created.body.id;
+
+    const dup = await adminAgent
+      .post('/api/v1/products/itest-docs-alpha/documents')
+      .send({ docTypeKey: 'use_case', code: 'DOC-051', title: 'Duplicado' });
+    expect(dup.status).toBe(409);
+    expect(dup.body.code).toBe('document.code_conflict');
+
+    const list = await adminAgent.get('/api/v1/products/itest-docs-alpha/documents');
+    expect(list.status).toBe(200);
+    expect(list.body.map((d: { id: string }) => d.id)).toContain(docId);
+    const byNode = await adminAgent.get(
+      `/api/v1/products/itest-docs-alpha/nodes/${nodeCode}/documents`,
+    );
+    expect(byNode.status).toBe(200);
+    expect(byNode.body.map((d: { id: string }) => d.id)).toContain(docId);
+
+    const detail = await adminAgent.get(`/api/v1/products/itest-docs-alpha/documents/${docId}`);
+    expect(detail.status).toBe(200);
+    expect(detail.body.title).toContain('Asignación');
+  });
+
+  it('transiciones: draft→published directo rechazado; draft→in_review ok', async () => {
+    const bad = await adminAgent
+      .post(`/api/v1/products/itest-docs-alpha/documents/${docId}/transition`)
+      .send({ toStatus: 'published' });
+    expect(bad.status).toBe(409);
+    expect(bad.body.code).toBe('document.invalid_transition');
+
+    const ok = await adminAgent
+      .post(`/api/v1/products/itest-docs-alpha/documents/${docId}/transition`)
+      .send({ toStatus: 'in_review' });
+    expect(ok.status).toBe(200);
+    expect(ok.body.status).toBe('in_review');
+  });
+
+  it('versionado: v1 inicial, createVersion v2, publish v3 con estado publicado', async () => {
+    const versions0 = await adminAgent.get(
+      `/api/v1/products/itest-docs-alpha/documents/${docId}/versions`,
+    );
+    expect(versions0.body).toHaveLength(1);
+
+    const edited = await adminAgent
+      .patch(`/api/v1/products/itest-docs-alpha/documents/${docId}`)
+      .send({ bodyMarkdown: '# Asignación v2\n\nAñade criterios de aceptación.' });
+    expect(edited.status).toBe(200);
+    const versionsAfterEdit = await adminAgent.get(
+      `/api/v1/products/itest-docs-alpha/documents/${docId}/versions`,
+    );
+    expect(versionsAfterEdit.body).toHaveLength(1);
+
+    const v2 = await adminAgent
+      .post(`/api/v1/products/itest-docs-alpha/documents/${docId}/versions`)
+      .send({ changeNote: 'Borrador v2', expectedVersion: 1 });
+    expect(v2.status).toBe(201);
+    expect(v2.body.version).toBe(2);
+
+    const stale = await adminAgent
+      .post(`/api/v1/products/itest-docs-alpha/documents/${docId}/versions`)
+      .send({ changeNote: 'Pisa v2', expectedVersion: 1 });
+    expect(stale.status).toBe(409);
+    expect(stale.body.code).toBe('document.version_conflict');
+
+    const published = await adminAgent
+      .post(`/api/v1/products/itest-docs-alpha/documents/${docId}/publish`)
+      .send({ changeNote: 'Publicación vigente' });
+    expect(published.status).toBe(200);
+    expect(published.body.status).toBe('published');
+    expect(published.body.version).toBe(3);
+
+    const versions = await adminAgent.get(
+      `/api/v1/products/itest-docs-alpha/documents/${docId}/versions`,
+    );
+    expect(versions.body.map((v: { version: number }) => v.version)).toEqual([3, 2, 1]);
+
+    const v2detail = await adminAgent.get(
+      `/api/v1/products/itest-docs-alpha/documents/${docId}/versions/2`,
+    );
+    expect(v2detail.status).toBe(200);
+    expect(v2detail.body.bodyMarkdown).toContain('criterios de aceptación');
+  });
+
+  it('vínculos: nodo inexistente → 422; doc↔doc con duplicado 409 y auto-relación 422', async () => {
+    const badNode = await adminAgent
+      .post(`/api/v1/products/itest-docs-alpha/documents/${docId}/nodes`)
+      .send({ nodeCode: 'NOPE-99' });
+    expect(badNode.status).toBe(422);
+
+    const second = await adminAgent.post('/api/v1/products/itest-docs-alpha/documents').send({
+      docTypeKey: 'use_case',
+      code: 'DOC-052',
+      title: 'Caso de uso — Asignar pedido a ruta óptima',
+      bodyMarkdown: 'Flujo principal y alternativos.',
+    });
+    expect(second.status).toBe(201);
+    doc2Id = second.body.id;
+
+    const rel = await adminAgent
+      .post(`/api/v1/products/itest-docs-alpha/documents/${docId}/relations`)
+      .send({ targetId: doc2Id, relationType: 'specifies' });
+    expect(rel.status).toBe(201);
+
+    const dupRel = await adminAgent
+      .post(`/api/v1/products/itest-docs-alpha/documents/${docId}/relations`)
+      .send({ targetId: doc2Id, relationType: 'specifies' });
+    expect(dupRel.status).toBe(409);
+
+    const selfRel = await adminAgent
+      .post(`/api/v1/products/itest-docs-alpha/documents/${docId}/relations`)
+      .send({ targetId: docId, relationType: 'relates_to' });
+    expect(selfRel.status).toBe(422);
+
+    const outgoing = await adminAgent.get(
+      `/api/v1/products/itest-docs-alpha/documents/${docId}/relations?direction=out`,
+    );
+    expect(outgoing.status).toBe(200);
+    expect(outgoing.body).toHaveLength(1);
+    const incoming = await adminAgent.get(
+      `/api/v1/products/itest-docs-alpha/documents/${doc2Id}/relations?direction=in`,
+    );
+    expect(incoming.body).toHaveLength(1);
+  });
+
+  it('adjuntos: subida válida, descarga segura, SVG malicioso rechazado', async () => {
+    const upload = await adminAgent
+      .post(`/api/v1/products/itest-docs-alpha/attachments?ownerId=${docId}`)
+      .attach('file', PNG_MINIMAL, { filename: 'diagrama.png', contentType: 'image/png' });
+    expect(upload.status).toBe(201);
+    const attachmentId = upload.body.id as string;
+
+    const download = await adminAgent.get(
+      `/api/v1/products/itest-docs-alpha/attachments/${attachmentId}/download`,
+    );
+    expect(download.status).toBe(200);
+    expect(download.headers['content-disposition']).toContain('attachment');
+    expect(download.headers['x-content-type-options']).toBe('nosniff');
+    expect(download.headers['content-security-policy']).toContain("default-src 'none'");
+
+    const malicious = '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>';
+    const rejected = await adminAgent
+      .post(`/api/v1/products/itest-docs-alpha/attachments?ownerId=${docId}`)
+      .attach('file', Buffer.from(malicious), {
+        filename: 'evil.svg',
+        contentType: 'image/svg+xml',
+      });
+    expect(rejected.status).toBe(422);
+    expect(rejected.body.code).toBe('attachment.magic_mismatch');
+
+    const badMime = await adminAgent
+      .post(`/api/v1/products/itest-docs-alpha/attachments?ownerId=${docId}`)
+      .attach('file', PNG_MINIMAL, {
+        filename: 'disco.exe',
+        contentType: 'application/octet-stream',
+      });
+    expect(badMime.status).toBe(422);
+    expect(badMime.body.code).toBe('attachment.mime_not_allowed');
+
+    const list = await adminAgent.get(
+      `/api/v1/products/itest-docs-alpha/attachments?ownerId=${docId}`,
+    );
+    expect(list.body.map((a: { id: string }) => a.id)).toContain(attachmentId);
+  });
+
+  it('búsqueda FTS: «asignación» y código de nodo encuentran el documento', async () => {
+    const byText = await adminAgent.get(
+      `/api/v1/products/itest-docs-alpha/search?q=${encodeURIComponent('asignación')}`,
+    );
+    expect(byText.status).toBe(200);
+    expect(byText.body.map((h: { id: string }) => h.id)).toContain(docId);
+
+    const byCode = await adminAgent.get(
+      `/api/v1/products/itest-docs-alpha/search?q=${encodeURIComponent(nodeCode)}`,
+    );
+    expect(byCode.status).toBe(200);
+    expect(byCode.body.map((h: { id: string }) => h.id)).toContain(docId);
+  });
+
+  it('F2-SEC · tenant-escape: outsider 403; collaborator escribe pero no publica', async () => {
+    expect((await outsiderAgent.get('/api/v1/products/itest-docs-alpha/documents')).status).toBe(
+      403,
+    );
+    const invite = await adminAgent
+      .post('/api/v1/products/itest-docs-alpha/members')
+      .send({ email: 'docs-collab@itest.dev', roleKey: 'collaborator' });
+    expect(invite.status).toBe(201);
+
+    const created = await collaboratorAgent
+      .post('/api/v1/products/itest-docs-alpha/documents')
+      .send({ docTypeKey: 'workflow', title: 'Flujo desde colaborador' });
+    expect(created.status).toBe(201);
+    const denied = await collaboratorAgent
+      .post(`/api/v1/products/itest-docs-alpha/documents/${created.body.id}/publish`)
+      .send({ changeNote: 'intento' });
+    expect(denied.status).toBe(403);
+
+    expect((await outsiderAgent.get('/api/v1/products/itest-docs-beta/documents')).status).toBe(
+      403,
+    );
+  });
+});

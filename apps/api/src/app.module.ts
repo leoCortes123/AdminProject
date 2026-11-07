@@ -11,6 +11,9 @@ import { SessionGuard } from './iam/session.guard';
 import { HealthModule } from './health/health.module';
 import { ProductsModule } from './products/products.module';
 import { NodesModule } from './nodes/nodes.module';
+import { DocumentsModule } from './documents/documents.module';
+import { AttachmentsModule } from './attachments/attachments.module';
+import { SearchModule } from './search/search.module';
 
 const env = getEnv();
 
@@ -37,6 +40,9 @@ const env = getEnv();
     HealthModule,
     ProductsModule,
     NodesModule,
+    DocumentsModule,
+    AttachmentsModule,
+    SearchModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: SessionGuard },

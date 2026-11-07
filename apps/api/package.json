@@ -12,6 +12,7 @@
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1164.0",
     "@devcycle/db": "workspace:*",
     "@devcycle/shared": "workspace:*",
     "@nestjs/common": "^11.0.1",

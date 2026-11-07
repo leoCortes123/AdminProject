@@ -958,6 +958,74 @@ table.tbl {
   vertical-align: 1px;
 }
 
+/* Documentación (Fase 2 · M-03): preview Markdown + editor CodeMirror */
+.doc-preview h1 {
+  font-size: 17px;
+  letter-spacing: -0.2px;
+  margin: 0 0 8px;
+}
+.doc-preview h2 {
+  font-size: 14.5px;
+  margin: 14px 0 6px;
+}
+.doc-preview h3 {
+  font-size: 13px;
+  margin: 12px 0 6px;
+}
+.doc-preview p {
+  margin: 0 0 8px;
+}
+.doc-preview ul,
+.doc-preview ol {
+  padding-left: 20px;
+  margin: 0 0 8px;
+  line-height: 1.7;
+}
+.doc-preview code {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.doc-preview pre {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  overflow: auto;
+  margin: 0 0 8px;
+}
+.doc-preview pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.doc-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 8px;
+}
+.doc-preview th,
+.doc-preview td {
+  border: 1px solid var(--line);
+  padding: 6px 8px;
+  text-align: left;
+  font-size: 11.5px;
+}
+.doc-preview a {
+  color: var(--accent-ink);
+}
+.markdown-editor .cm-content {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.markdown-editor .cm-focused {
+  outline: none;
+}
+
 /* Toggle de vistas (tareas) */
 .view-toggle {
   display: inline-flex;

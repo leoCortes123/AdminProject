@@ -1,89 +1,81 @@
-# HANDOFF — DevCycle (AdminProject) · 2026-11-06 (5ª sesión)
+# HANDOFF — DevCycle (AdminProject) · 2026-11-07 (6ª sesión)
 
-> **Estado:** Fase 1 · Fundamentos — **CERRADA (criterios cumplidos en local)**. Integración API+PG **verde (7/7, fuzz de 1.000 movimientos)** y **E2E Playwright verde** (camino dorado + presupuesto TTI). CI con 4 jobs (`build-test`, `db-migrations`, `integration-tests`, `e2e`). `lint`/`typecheck`/`test`/`build`/`format:check` verdes en el workspace.
-> **Servidores demo vivos:** web `:3000` (proxy → :3001), API `:3001`. BD `devcycle` con seed demo prístino en usuarios (0 usuarios hasta registrar el primero, que recibe `admin_global`).
+> **Estado:** Fase 2 · Conocimiento — **CERRADA (criterios cumplidos en local)**. Integración API+PG **verde (15/15, incluye fuzz de 1.000 movimientos de Fase 1)** y **E2E Playwright verde (3/3: golden + perf + documentación)**. `lint`/`typecheck`/`test`/`build`/`format:check` verdes en el workspace. Fase 1 sigue intacta y verde.
+> **Servidores demo vivos:** web `:3000` (proxy → :3001, web reconstruida por defecto), API `:3001`. BD `devcycle` con seed demo (3 productos, árbol + 3 documentos kanora) y **1 usuario existente** (`drleocortex@gmail.com`, admin) — no resetear a mano sin confirmación.
 > **Entornos efímeros:** `devcycle_test` (integración API, la recrea su globalSetup) · `devcycle_e2e` (E2E, la recrea su globalSetup).
 
 ## 0. Qué es el proyecto
 
-Plataforma de gestión del ciclo de vida del software (multiproducto, trazabilidad funcional, agentes IA vía MCP). Brief en `prompt.md`; plan en `docs/planificacion/` (12 docs). Mockup UX aprobado en `muckup/` (**intocable** — `apps/web/src/app/globals.css` es su puerto fiel). Desarrollo según `docs/planificacion/07-plan-implementacion.md`, **Fase 1 · Fundamentos**.
+Plataforma de gestión del ciclo de vida del software (multiproducto, trazabilidad funcional, agentes IA vía MCP). Brief en `prompt.md`; plan en `docs/planificacion/` (12 docs). Mockup UX aprobado en `muckup/` (**intocable** — `apps/web/src/app/globals.css` es su puerto fiel). Desarrollo según `docs/planificacion/07-plan-implementacion.md`, **Fase 2 · Conocimiento (M-03)**.
 
-## 1. Hecho y verificado ✅ (acumulado Fases 1-T01…T12 + esta sesión)
+## 1. Hecho y verificado ✅ (Fase 2: F2-T01…T09; Fase 1 intacta)
 
-### Raíz / monorepo / CI — esta sesión: `integration-tests` y `e2e` (4 jobs)
+### F2-T01 · Esquema + migración `0003_documents` (up/down + seed idempotente)
 
-- `.github/workflows/ci.yml`: jobs `build-test` · `db-migrations` · **`integration-tests`** (PG 16 service → build shared+db → `pnpm --filter @devcycle/api test:integration`) · **`e2e`** (PG 16 service → build con `API_INTERNAL_URL=http://localhost:3101` horneada → `npx playwright install --with-deps chromium-headless-shell` → `pnpm --filter @devcycle/web e2e`). YAML validado.
-- `pnpm test:integration` (api) y `pnpm e2e` (web) ejecutan sus suites **fuera** de `turbo test` (las BD efímeras se autogestionan).
+- `packages/db/migrations/0003_documents.{up,down}.sql`: `content_items` (status/scope CHECK, código parcial-único, `search_tsv` + GIN, FKs compuestas `(id, product_id)`), `item_versions` (UNIQUE + append-only vía `forbid_mutation()` de 0002), `item_node_links` (N:M + trigger valida mismo producto), `relations` base (kinds 6 en CHECK pero trigger valida **node/item**; resto se endurece en Fases 3–4), `comments` base (`parent_kind=item`; Fase 3 extiende), `attachments` (`owner_kind=item`, ver F2-T05). Down probado (`migrate down` → `up`).
+- `search_tsv` con **trigger** (`to_tsvector` no es IMMUTABLE, no cabe en GENERATED); `document_types` ya traía los 13 del prompt §5.3 (con `adr` incluido): el "14 (13+adr)" del plan 07 §3 **no se aplica** — prompt y seed coinciden en 13, añadir uno duplicaría. Decisión documentada aquí.
+- Modelos Drizzle en `packages/db/src/schema.ts`; esquemas zod compartidos + `DOCUMENT_SCOPES`/`ATTACHMENT_*` en `packages/shared`.
 
-### `apps/api` — integración API+PG **verde (7 tests, incl. fuzz 300 movimientos)** — esta sesión
+### F2-T02…T03 · CRUD con estados + versionado (F2-T09: 409 concurrente)
 
-Causas raíz diagnosticadas y corregidas (todas verificadas):
+- `apps/api/src/documents/` — `documents.service.ts` (CRUD, transiciones, publish, versions, vínculos), `document-transitions.ts` (máquina pura: draft→in_review→published→archived, `canTransition`, unit-testeada), `documents.controller.ts` (incl. `NodeDocumentsController` para `GET nodes/:code/documents` — pestaña de ficha), `documents.module.ts`.
+- Semántica (documentada en OpenAPI): crear → draft + snapshot **v1**; `PATCH` edita el trabajo en curso **sin** crear versión; `POST :id/versions` congela snapshot (opt. `expectedVersion`); `POST :id/publish` exige `@Permissions('docs:publish')`, congela la siguiente versión y marca `published` (desde draft cruza in_review; desde published re-publica v+1 — el flujo de aceptación v1→v2). Editar/publicar con `expectedVersion` obsoleto (o UNIQUE 23505) → **409 `document.version_conflict`**. Versiones inmutables por trigger + sin endpoint UPDATE/DELETE.
+- Permisos: lectura `docs:read` (viewer incluido); crear/editar/vincular/subir `docs:write`; publicar `docs:publish` (guard en `/publish` + comprobación en servicio en `/transition` para publicar por ahí). Todas las escrituras emiten `activity_log` (`doc.created/updated/transitioned/published/version_published/version_created/deleted/node_linked/…, relation.added/removed`).
 
-1. **`emitDecoratorMetadata` no existe en esbuild/Vite** (docs oficiales) → la DI de Nest resolvía `undefined` en runtime (`SessionGuard.reflector` → TypeError → 500). Fix: transform de integración con **SWC** (`unplugin-swc` + `@swc/core`, `legacyDecorator` + `decoratorMetadata`) en `vitest.integration.config.ts`.
-2. **`request.agent(fn)` de supertest interpreta la función como request-listener** (crea `http.Server(fn)` que nunca responde) → toda petición con agente colgaba para siempre (el síntoma "cuelga tras request id=2"). Fix: agentes creados en `beforeAll` pasando **el servidor real** (`request.agent(app.getHttpServer())`).
-3. **POST de acción devolvía 201** (default Nest) → `move` y `deactivate` ahora `@HttpCode(200)` (semántica REST correcta; el spec y la API coherentes).
-4. Handler crudo better-auth: si better-auth lanza, responder **500 JSON** en vez de colgar (blindaje en `bootstrap.ts`; jamás dejar la petición sin respuesta).
-5. Spec corregido a la realidad: códigos de nodo (`MOD-1`, regex del schema), anti-ciclo sobre PANT-11 (COMP-11 se movió a raíz antes), duplicado zero-padded (`MOD-02`). El "hang" del worker era en realidad el test del agente supertest colgado (nunca el código de dominio).
+### F2-T04 · Editor CodeMirror 6 + preview sanitizada + autosave local + diff
 
-Suite: `src/integration/api.integration.spec.ts` — health · 401 problem+json · seed demo · CRUD+move+duplicate+deactivate (ltree íntegro) · FND-SEC tenant-escape (403 sin membresía; viewer lee sí/escribe no) · **fuzz determinista de 300 moves (mulberry32)** con invariantes cada 25 iteraciones (path único, padre-hijo conexo, profundidad consistente). ~60–70 s en frío.
+- `apps/web/src/components/markdown-editor.tsx` (CodeMirror 6 + `markdown()` + wrap; controlado) y `docs-view.tsx` (modo Editar ↔ Vista previa, autosave local en `localStorage` con debounce 500 ms, banner de borrador sin guardar).
+- `lib/markdown.ts`: `unified().use(remarkParse).use(remarkRehype).use(rehypeSanitize).use(rehypeStringify)` — HTML crudo nunca se interpreta (`allowDangerousHtml: false` por defecto); unit tests XSS (script/javascript:/on*). `lib/diff.ts`: `diffLines` (paquete `diff`, no `jsdiff` — ver §5) con timeline, radios "desde/hasta vN" y panel +N/−N.
+- Vista Documentación paridad mockup (§5.3): `view-head` + `filter-bar` (tipo/estado/búsqueda) + `split-list-detail` (`.doc-item` + preview + `Historial de versiones` timeline) + pestaña Documentación de la ficha con contador real. Ruta `/products/[slug]/documentacion`; sidebar habilitada; entrada de docs en paleta Ctrl+K; exportar a Markdown (Blob).
 
-### `apps/web` + `e2e/` — **FND-E2E verde** — esta sesión
+### F2-T05 · Adjuntos — StoragePort (FS dev / S3 SDK prod)
 
-- `playwright.config.ts`: API `:3101` (dist/main.js) + web `:3100` (`next start`) como `webServer`; `retries: 0` (la spec no es idempotente: el PRIMER registro recibe `admin_global` y la BD solo se recrea por invocación).
-- `e2e/global-setup.ts`: drop/create **`devcycle_e2e`** → `migrate up` → seed demo (0 usuarios). Valida nombre de BD (identificador SQL simple).
-- `e2e/golden.spec.ts` — **camino dorado FND-E2E**: registro (primer usuario → admin_global) → Productos visibles (Kanora/Verdana/Núcleo del seed) → crear producto desde la UI (modal solo admin) → crear módulo vía API con la cookie del contexto → **nodo visible en Arquitectura funcional** → árbol real de kanora (MODULO-01) → logout → /login. ~35 s.
-- **Trampas documentadas:** las rewrites de Next se hornean en `next build` (`.next/routes-manifest.json`) → el build E2E exige `API_INTERNAL_URL=http://localhost:3101`; **y** los RSC leen `API_INTERNAL_URL` en **runtime** (`lib/api.ts`, no horneada) → el `next start` del E2E la recibe también en env. Sin la runtime, las fetches SSR van a la demo :3001 → 401 → redirect /login (síntoma: heading "Productos" ausente).
-- `vitest.config.ts` en web: unitarios **solo** `src/**` (playwright no es vitest).
+- `apps/api/src/attachments/`: `storage.port.ts` (`STORAGE_PORT {put,get,delete}`), `filesystem.storage.ts` (traversal-safe, `UPLOADS_DIR`, defecto `apps/api/data/uploads/`), `s3.storage.ts` (`@aws-sdk/client-s3`, env `S3_*`, MinIO `forcePathStyle`), fábrica `S3_BUCKET ? S3 : FS`. Servicio valida allowlist MIME + tamaño 15 MB + magic-bytes + SVG sanitizado (`svg-sanitize.ts`, unit-testeado); si la fila no se guarda tras `put`, compensa borrando el binario. Descarga **siempre** `Content-Disposition: attachment` + `CSP: default-src 'none'; sandbox` + `nosniff`. Endpoints `POST/GET /attachments` + `GET :id/download` + `DELETE :id` (multipart vía `FileInterceptor`).
+- Dependencias añadidas: `@aws-sdk/client-s3` (api); web: `@codemirror/*`, `unified`, `remark-parse`, `remark-rehype`, `rehype-sanitize`, `rehype-stringify`, `diff` + `@types/diff`.
 
-### Cierre de Fase 1 — esta sesión
+### F2-T06 · Vínculos doc↔nodo y doc↔doc
 
-- **Fuzz de 1.000 movimientos** (plan 07 §2 / 08 §2): `apps/api/src/integration/api.integration.spec.ts` — 1.000 ops deterministas (mulberry32) con invariantes cada 25 y timeout de 15 min; verde en 109 s. Parametrizable con `MOVE_FUZZ_OPS` / `MOVE_FUZZ_CHECK_EVERY`. `hookTimeout` de integración a 10 min (`vitest.integration.config.ts`) y `timeout-minutes: 20` en el job de CI.
-- **F1-T08 · TTI < 1.5 s**: `apps/web/e2e/perf.spec.ts` — login/registro vía API (idempotente respecto a `golden.spec.ts`), navegación a `/products` sobre `next start` de producción y aserción `domContentLoaded < 1500 ms` + contenido real visible. Medido: **≈ 91 ms**.
-- **Calidad de formato**: `pnpm format:check` ahora verde en todo el repo (antes 47 archivos con drift). `.prettierignore` excluye `muckup/` (mockup intocable), `prompt.md` y lockfiles/workspace.
-- README actualizado (web entregada, comandos, fuzz 1.000, format).
+- `item_node_links`: `POST/DELETE /documents/:id/nodes[/:nodeCode]` + `GET :id/nodes`; código de nodo inexistente → **422 problem+json** (prevalidación + trigger). `relations`: `POST /documents/:id/relations` (target item mismo producto, anti-auto-relación, duplicado → 409) + `GET ?direction=out|in|both` + `DELETE :id/relations/:relationId`. La Fase 4 endurecerá `relations` (triggers para task/issue/change/test_case + 7 consultas `/trace/*`).
 
-### Resto acumulado (Fase 1-T01…T12) — sin cambios esta sesión
+### F2-T07 · Búsqueda global v1 (FTS español + códigos)
 
-Monorepo+CI · packages/db (migraciones up/down reversibles, seed idempotente) · packages/shared (zod, RFC 9457) · packages/ui (Tree/DataTable/Tabs/… · 25 tests · cobertura 94,9%) · better-auth (sesiones PG, cookie HttpOnly, primer usuario admin_global) · RBAC (admin_global/admin_product/collaborator/viewer + permissions granulares + productGuard) · products CRUD + miembros · nodes CRUD + move/duplicate/deactivate (ltree, anti-ciclo, serializable) · apps/web (Productos con KPIs reales, Resumen, Arquitectura funcional read-only, paleta Ctrl+K, login/signup/logout) · demo seeds (kanora/verdana/nucleo).
+- `apps/api/src/search/` — `GET /products/:slug/search?q=&kinds=document&limit=` con `websearch_to_tsquery('spanish', …)` + `ts_rank` + fallback `ILIKE` (código/título) + código del nodo vinculado. "PANT-02" (o `PANT-51`) y "asignación" encuentran el documento (integración). La búsqueda global completa de Fase 5 reutiliza `search_tsv`.
+
+### F2-T08…T09 · Pruebas
+
+- Integración ampliada **dentro del único** `api.integration.spec.ts` (ver §5: dos archivos comparten BD y "primer usuario admin_global" → carrera): 8 tests F2 (catálogo 13 · CRUD + visible en ambos lados · transiciones · v1→v2→publish v3 · 422/409 vínculos · adjuntos + headers · FTS · F2-SEC outsider 403 + collaborator escribe-pero-no-publica). Total **15/15** (~132 s con fuzz 1.000). Unitarios: `document-transitions.spec.ts` (5), `svg-sanitize.spec.ts` (3), `markdown.spec.ts` (3, XSS), `diff.spec.ts` (2).
+- E2E `z-documentacion.spec.ts` (crear vía UI vinculado a PANT-02 → publicar con `dialog.accept()` → Vigente → visible en ficha): **3/3 verde** (~42 s; golden 3,0 s, perf 114 ms). Seed demo: 3 documentos kanora (`DOC-101` vigente multi-nodo v2, `DOC-118` vigente, `DOC-124` en revisión; idempotente por código).
+
+### Resto acumulado (Fase 1, sin cambios)
+
+Monorepo+CI (4 jobs) · `packages/db` (migraciones reversibles) · `packages/shared` · `packages/ui` · better-auth · RBAC + guards · products + nodes (ltree) · web Fase 1 (Productos, Resumen, Árbol read-only, Ctrl+K, login) · demo seeds. Cliente de API compartido (SSR con cookie + proxy Next) y `ProductGuard`/`PermissionsGuard` reutilizados tal cual para documentos/adjuntos/search (tenant-escape por construcción).
 
 ## 2. Pendiente inmediato (en este orden)
 
 ### A · CI verde en GitHub — ⚠️ bloqueado por la cuenta de GitHub (no por el código)
 
-**Push hecho** (2026-11-06, run [42292587175](https://github.com/leoCortes123/AdminProject/actions/runs/42292587175)): los 4 jobs arrancan pero **ninguno se ejecuta** — GitHub responde _"The job was not started because your account is locked due to a billing issue"_. El repo es público, `allowed_actions: all` y el token tiene scopes `repo`+`workflow` (no es un problema del `ci.yml`).
+**Push hecho en Fase 1** (2026-11-06, run [42292587175](https://github.com/leoCortes123/AdminProject/actions/runs/42292587175)): los 4 jobs arrancan pero **ninguno se ejecuta** — GitHub responde _"The job was not started because your account is locked due to a billing issue"_ (repo público, `allowed_actions: all`, token con `repo`+`workflow`: no es el `ci.yml`).
 
-**Qué hacer (solo el dueño de la cuenta puede):**
+**Qué hacer (solo el dueño de la cuenta puede):** `https://github.com/settings/billing` (regularizar método de pago / cuota) → `…/billing/payment-history` (pago fallido) → tras desbloquear, `gh workflow run CI` y confirmar los 4 jobs verdes. Todo lo que ejecuta la CI está verificado en local: `lint` · `typecheck` · `test` · `build` · `format:check` · migraciones up/down + seed idempotente (incl. docs demo) · integración 15/15 (fuzz 1.000) · E2E 3/3.
 
-1. `https://github.com/settings/billing` — resolver el estado de facturación/pago pendiente (verificar método de pago y que la cuota de minutos esté disponible).
-2. `https://github.com/settings/billing/payment-history` — si aparece un pago fallido/retto, regularizarlo.
-3. Si es límite de minutos: para repos públicos los runners estándar son gratuitos, así que el bloqueo es de la cuenta, no de consumo.
-4. Tras desbloquear: `gh workflow run CI` (o un commit vacío) y confirmar los 4 jobs verdes.
+### B · Criterios de aceptación de Fase 2 (§3 de 07-plan) — **todos cumplidos en local**
 
-Todo lo que ejecuta la CI está verificado en local esta sesión: `lint` · `typecheck` · `test` · `build` · `format:check` · migraciones up/down + seed idempotente · integración 7/7 (fuzz 1.000) · E2E 2/2.
+1. ✅ Publicar DOC v1→v2 y ver diff (timeline + diff v3/v2 en UI; integración v1→v2→v3). ✅ 13 tipos operativos. ✅ Doc a N nodos visible en ambos (listado + ficha). ✅ Búsqueda ("asignación" y código de nodo) devuelve resultados. ✅ Publicación requiere permiso (403 a collaborator/viewer). ✅ Adjunto servido de forma segura (attachment + CSP + SVG malicioso 422).
+2. ⏳ Solo queda **CI verde en GitHub** (ver A).
 
-### B · Criterios de aceptación de fase (§2 de 07-plan) — **todos cumplidos en local**
+### C · Deuda menor conocida (sin bloquear Fase 3)
 
-1. ✅ login real · ✅ crear 2 productos aislados · ✅ árbol operativo (ltree íntegro, **fuzz 1.000** — `apps/api/src/integration`, ~110 s) · ✅ demo seed (`pnpm demo` en 5 min) · ✅ strict limpio · ✅ build/lint/typecheck/unit/integration/e2e verdes.
-2. ✅ **TTI < 1.5 s en Productos** — medido por `apps/web/e2e/perf.spec.ts` sobre el build de producción: **≈ 91 ms** (presupuesto 1.500 ms; el test falla si se supera).
-3. Tokens/scopes → Fase 6a, fuera de scope de Fase 1.
-4. ⏳ Solo queda **CI verde en GitHub** (ver A).
-
-### C · Deuda menor conocida
-
-- `apps/web`: el context switcher (`AppShell`) quedó corregido (`useEffect` + `startTransition`, commit `3aee6b5`); validar visualmente en la demo.
-- KPIs de Productos no cubren "Tareas/Incidencias" (llegan en Fases 3–5) — etiquetados honestamente como Fase 1.
-- `Integrantes` lista membresías `product_members` explícitas; `admin_global` no aparece (acceso implícito) — correcto aunque confunda en demo.
-- API: rate-limit de better-auth bajo proxy sin IP (warning cosmético; configurar `advanced.ipAddress` si se pone tras proxy real).
-- Rewrites horneadas en build: **tras correr E2E local, reconstruir la web con env por defecto** (`pnpm --filter @devcycle/web build`) para que la demo proxye a :3001. (Esta sesión ya dejó la web reconstruida por defecto y :3000 vivo.)
-- pnpm en este PC: instalar con `CI=true pnpm --store-dir=/run/media/leonardo/Datos/.pnpm-store/v10 …`.
-- **Nunca** `pkill -f` con cadenas que aparezcan en la propia shell — PIDs en `/tmp/opencode/*.pid` o `ss -ltnp`.
-- `pnpm format` reescribía el mockup (intocable) y `prompt.md` → ahora `.prettierignore` los excluye; si se añade tooling nuevo, comprobar que no toque `muckup/`.
-- Fuzz de integración parametrizable: `MOVE_FUZZ_OPS=100 pnpm test:integration` para una pasada rápida en local (CI y por defecto: 1.000).
+- Editor/diff/sanitizado pasan unitarios + E2E; el bundle de `/documentacion` es ~230 kB (CodeMirror): el presupuesto TTI < 1,5 s solo cubre Productos (F1-T08), pero vigilar si se añade más tooling.
+- `app-shell`: entradas Tareas/Incidencias/Modificaciones/Trazabilidad/Seguimiento/Agentes/Config siguen en "Pronto" (Fases 3–6) — correcto.
+- `relations`/`comments`/`attachments` validan hoy solo kinds `node/item`; task/issue/change/test_case llegan en Fases 3–4 (documentado en migración).
+- API: rate-limit de better-auth bajo proxy sin IP (warning cosmético; `advanced.ipAddress` si hay proxy real). pnpm en este PC: `CI=true pnpm --store-dir=/run/media/leonardo/Datos/.pnpm-store/v10 …` (sin el store-dir falla: node_modules enlazado desde `/run/media/…`).
+- ✅ Web reconstruida por defecto tras E2E (`pnpm --filter @devcycle/web build` → proxy :3001) y demo :3000 vivo.
+- **Nunca** `pkill -f` con cadenas de la propia shell; `pnpm format` no toca `muckup/` (`.prettierignore`).
 
 ## 3. Estado de las BDs
 
-- `devcycle` (demo): 3 productos, 10 nodos kanora, **0 usuarios**. Reset limpio: `docker compose down -v && up -d postgres && pnpm --filter @devcycle/db migrate up && pnpm --filter @devcycle/db exec tsx src/seed.ts --demo`.
-- `devcycle_test` y `devcycle_e2e`: efímeras, drop/create en cada `test:integration` / `e2e`. No tocar a mano.
+- `devcycle` (demo): 3 productos, árbol kanora, **3 documentos kanora** (`DOC-101` v2 vigente, `DOC-118` v1 vigente, `DOC-124` v1 en revisión) y **1 usuario** (el dueño, admin — ⚠️ no resetear sin confirmación; `down -v` borraría su usuario e historia). Reset limpio si se confirma: `docker compose down -v && up -d postgres && pnpm --filter @devcycle/db migrate up && pnpm --filter @devcycle/db exec tsx src/seed.ts --demo`.
+- `devcycle_test` y `devcycle_e2e`: efímeras, drop/create en cada `test:integration` / `e2e`. No tocar a mano. Subidos locales quedan en `apps/api/data/uploads/` (gitignored).
 
 ## 4. Comandos de recuperación
 
@@ -94,23 +86,24 @@ docker compose up -d postgres
 cd apps/api && setsid bash -c 'set -a; . ./.env; set +a; exec node dist/main.js' </dev/null > /tmp/opencode/api.log 2>&1 &
 cd ../web && setsid bash -c 'exec npx next start -p 3000' </dev/null > /tmp/opencode/web.log 2>&1 &
 # Tests pesados (fuera de turbo test):
-cd apps/api && pnpm test:integration   # 7 tests, PG efímero
+cd apps/api && pnpm test:integration   # 15 tests, PG efímero (~2 min con fuzz 1.000)
 cd ../web && API_INTERNAL_URL=http://localhost:3101 pnpm build && pnpm e2e   # ¡recordar rebuild por defecto después!
 ```
 
 ## 5. Decisiones y trampas de esta sesión (no repetir)
 
-- **esbuild/Vite NO soporta `emitDecoratorMetadata`** → DI de Nest rota en runtime bajo vitest aunque el tipochequeo pase. Fix de referencia: SWC con `legacyDecorator`+`decoratorMetadata` (o probar el artefacto compilado).
-- **`request.agent(fn)`** en supertest ≠ factory: `fn` es el request-listener (nunca responde) → "cuelga para siempre". Pasar el `http.Server` real.
-- **Playwright arranca `webServer` ANTES que `globalSetup`** → la API bootea contra la BD aún inexistente (health 503) y los tests esperan a que tenga datos; funciona porque el health-check de Playwright reintenta, pero no asumir orden contrario.
-- **Next hornea `rewrites` en build** y RSC leen env en runtime → el E2E necesita `API_INTERNAL_URL` **en ambos** (build y start), apuntando a :3101.
-- **Retries de Playwright y "primer usuario admin_global"** son incompatibles en un retry → `retries: 0` por diseño.
-- Seeds/migraciones son idempotentes; el reset duro (`down -v`) sigue siendo la única vía si hay usuarios de prueba con historia (`activity_log` es append-only).
-- El diagnóstico real salió de **loguear la excepción en el filtro global** y del `grep` de la red — ojo con "cuelgues" que son en realidad tests fallidos que nunca reciben respuesta.
+- **Los specs de integración comparten BD y "primer usuario admin_global"**: dos archivos (`api…` + `documents…`) en una sola invocación → el primero que registra es admin y el otro falla (403/404 en cascada). Decisión: **un solo** `api.integration.spec.ts` con dos `describe` (Fase 1 + Fase 2) y agentes compartidos.
+- **E2E comparten BD e2e y admin**: la primera spec que registra es admin; `golden.spec.ts` no es idempotente (rompe si otra spec registró antes). Decisión: `z-documentacion.spec.ts` corre **después** (g < p < z) con login idempotente (patrón `perf.spec.ts`). No renombrar a algo anterior a `golden`.
+- **`unified().processSync` sin compilador**: el pipeline Markdown exige `rehype-stringify` para la salida HTML; sin él → `Cannot processSync without compiler` (vitest lo manifestó, `next build` no lo avisó).
+- **`jsdiff` no tiene `@types/jsdiff`** (registry 404 y paquete obsoleto v1): se usa **`diff`** (+ `@types/diff`). Los docs del plan dicen "jsdiff" genéricamente.
+- **Regex de código documental**: `DOC-nnn` numérico obligatorio (`/^[A-Z][A-Z0-9_]{0,15}-[0-9]{1,6}$/`); `DOC-E2E` → 400. Los demo usan `DOC-101/118/124` (números, como el mockup).
+- **E2E locators**: el título aparece en lista + preview (strict mode) → `.first()`; "Vigente" también es `<option>` del filtro (hidden) → asertar **dentro** de `.doc-item`.
+- **`search_tsv` debe ser por trigger**, no GENERATED (`to_tsvector` es STABLE, no IMMUTABLE). FTS + fallback `ILIKE` + nodos vinculados cubre códigos con guion (`PANT-02`).
+- **Regla de Fase 1 (no repetir):** esbuild/Vite no soporta `emitDecoratorMetadata` (SWC en integración); `request.agent(fn)` cuelga; Next hornea rewrites en build (E2E: `API_INTERNAL_URL` en build **y** start); `retries: 0` por el primer-usuario-admin. Ver §1 F1 y commit Fase 1.
 
 ## 6. Referencias
 
-- Plan e implementación: `docs/planificacion/07-plan-implementacion.md` §2 (F1-T01…T12). Criterios de fase §2.
-- Estrategia de pruebas: `docs/planificacion/08-estrategia-pruebas.md` §3–4 (FND-U/I/E2E/SEC/MIG — todos implementados y verdes).
-- ADRs: `docs/adr/ADR-001..005`. Mockup (intocable): `muckup/`.
-- CI: `.github/workflows/ci.yml` (4 jobs). E2E: `apps/web/{playwright.config.ts,e2e/}` (golden + perf). Integración: `apps/api/src/integration/`.
+- Plan: `docs/planificacion/07-plan-implementacion.md` §3 (F2-T01…T09) y criterios de fase §3; backlog `10-backlog-inicial.md` (M-03).
+- Técnica/datos: `04-modelo-datos.md` §4.3–4.5 y §6–§7 (relations/triggers), `03-arquitectura-tecnica.md` §4.6–4.7 (editor + StoragePort), `08-estrategia-pruebas.md` §3 (concurrencia 409, tenant-escape).
+- Integración: `apps/api/src/integration/api.integration.spec.ts` (15 tests). E2E: `apps/web/{playwright.config.ts,e2e/}` (golden + perf + `z-documentacion`). Migración: `packages/db/migrations/0003_documents.*`.
+- ADRs: `docs/adr/ADR-001..005`. Mockup (intocable): `muckup/`. CI: `.github/workflows/ci.yml` (4 jobs).

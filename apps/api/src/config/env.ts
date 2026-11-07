@@ -7,6 +7,14 @@ export const envSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(32, 'BETTER_AUTH_SECRET debe tener al menos 32 caracteres'),
   BETTER_AUTH_URL: z.string().url().default('http://localhost:3001'),
   WEB_URL: z.string().url().default('http://localhost:3000'),
+  // Adjuntos (F2-T05): FS por defecto; S3/MinIO si S3_BUCKET está definido.
+  UPLOADS_DIR: z.string().min(1).optional(),
+  S3_BUCKET: z.string().min(1).optional(),
+  S3_ENDPOINT: z.string().url().optional(),
+  S3_REGION: z.string().min(1).optional(),
+  S3_ACCESS_KEY_ID: z.string().min(1).optional(),
+  S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  S3_FORCE_PATH_STYLE: z.enum(['0', '1']).optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { CommandPalette, type CommandItem } from '@devcycle/ui';
 import { authClient } from '@/lib/auth-client';
 import { initials } from '@/lib/format';
-import type { MeResponse, ProductListItem, ProductNode } from '@/lib/types';
+import type { MeResponse, ProductListItem, ProductNode, DocumentItem } from '@/lib/types';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -220,6 +220,7 @@ export function AppShell({ children, products, me }: AppShellProps) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [nodesForPalette, setNodesForPalette] = useState<ProductNode[] | null>(null);
+  const [docsForPalette, setDocsForPalette] = useState<DocumentItem[] | null>(null);
   // Selector de contexto: valor elegido hasta que la navegación se confirme.
   const [pendingContext, setPendingContext] = useState<string | null>(null);
 
@@ -257,6 +258,7 @@ export function AppShell({ children, products, me }: AppShellProps) {
   // Carga perezosa del árbol del producto actual para la paleta (Ctrl+K).
   useEffect(() => {
     setNodesForPalette(null);
+    setDocsForPalette(null);
   }, [slug]);
   useEffect(() => {
     if (!paletteOpen || !slug || nodesForPalette !== null) return;
@@ -268,6 +270,14 @@ export function AppShell({ children, products, me }: AppShellProps) {
       })
       .catch(() => {
         if (!cancelled) setNodesForPalette([]);
+      });
+    fetch(`/api/v1/products/${slug}/documents`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: DocumentItem[]) => {
+        if (!cancelled) setDocsForPalette(data);
+      })
+      .catch(() => {
+        if (!cancelled) setDocsForPalette([]);
       });
     return () => {
       cancelled = true;
@@ -304,6 +314,13 @@ export function AppShell({ children, products, me }: AppShellProps) {
         keywords: `producto ${product.slug} ${product.name} árbol arbol arquitectura nodos`,
         onSelect: () => router.push(`/products/${product.slug}/arbol`),
       });
+      items.push({
+        id: `nav-${product.slug}-documentacion`,
+        label: `${product.name} · Documentación`,
+        hint: 'Producto',
+        keywords: `producto ${product.slug} ${product.name} documentación docs documento`,
+        onSelect: () => router.push(`/products/${product.slug}/documentacion`),
+      });
     }
     if (currentProduct && nodesForPalette) {
       for (const node of nodesForPalette) {
@@ -316,13 +333,26 @@ export function AppShell({ children, products, me }: AppShellProps) {
         });
       }
     }
+    if (currentProduct && docsForPalette) {
+      for (const doc of docsForPalette) {
+        items.push({
+          id: `doc-${doc.id}`,
+          label: `${doc.code ?? 'Documento'} · ${doc.title}`,
+          hint: `${currentProduct.name} → ${doc.docTypeLabel} · v${doc.version}`,
+          keywords: `${doc.code ?? ''} ${doc.title} ${doc.docTypeLabel} ${doc.nodeCodes.join(', ')}`,
+          onSelect: () =>
+            router.push(`/products/${currentProduct.slug}/documentacion?doc=${doc.id}`),
+        });
+      }
+    }
     return items;
-  }, [products, currentProduct, nodesForPalette, router]);
+  }, [products, currentProduct, nodesForPalette, docsForPalette, router]);
 
   const viewLabel = useMemo(() => {
     if (pathname === '/products') return 'Productos';
     if (/\/resumen$/.test(pathname)) return 'Resumen';
     if (/\/arbol$/.test(pathname)) return 'Arquitectura funcional';
+    if (/\/documentacion$/.test(pathname)) return 'Documentación';
     return 'Vista';
   }, [pathname]);
 
@@ -413,7 +443,7 @@ export function AppShell({ children, products, me }: AppShellProps) {
               </div>
               {navItem(`/products/${slug}/resumen`, NAV_ICON.resumen, 'Resumen')}
               {navItem(`/products/${slug}/arbol`, NAV_ICON.arbol, 'Arquitectura funcional')}
-              {navItem(null, NAV_ICON.docs, 'Documentación')}
+              {navItem(`/products/${slug}/documentacion`, NAV_ICON.docs, 'Documentación')}
               {navItem(null, NAV_ICON.tareas, 'Tareas')}
               {navItem(null, NAV_ICON.incidencias, 'Incidencias')}
               {navItem(null, NAV_ICON.modificaciones, 'Modificaciones')}
@@ -456,7 +486,7 @@ export function AppShell({ children, products, me }: AppShellProps) {
             Cerrar sesión
           </button>
           <div style={{ marginTop: 8 }}>
-            <strong>DevCycle v0.1 · Fase 1</strong>
+            <strong>DevCycle v0.2 · Fase 2</strong>
             <br />
             {me.user.name} · {ROLE_LABELS[roleKey] ?? roleKey}
           </div>

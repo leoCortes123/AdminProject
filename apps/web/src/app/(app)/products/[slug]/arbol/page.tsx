@@ -31,6 +31,7 @@ export default async function ArbolPage({
   return (
     <ArbolView
       productName={product.name}
+      productSlug={slug}
       nodes={nodes}
       {...(node ? { initialNodeCode: node } : {})}
     />

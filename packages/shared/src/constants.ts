@@ -24,6 +24,24 @@ export type NodeStatus = (typeof NODE_STATUSES)[number];
 export const DOCUMENT_STATUSES = ['draft', 'in_review', 'published', 'archived'] as const;
 export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number];
 
+export const DOCUMENT_SCOPES = ['node', 'global'] as const;
+export type DocumentScope = (typeof DOCUMENT_SCOPES)[number];
+
+/** MIME allowlist de adjuntos (03 §4.7: 15 MB/fichero; SVG se sanitiza). */
+export const ATTACHMENT_ALLOWED_MIME = [
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/svg+xml',
+  'application/pdf',
+  'text/plain',
+  'text/markdown',
+  'text/csv',
+  'application/json',
+] as const;
+export type AttachmentMime = (typeof ATTACHMENT_ALLOWED_MIME)[number];
+export const ATTACHMENT_MAX_BYTES = 15_000_000;
+
 export const TASK_TYPES = ['development', 'analysis', 'documentation', 'maintenance'] as const;
 export const PRIORITIES = ['critical', 'high', 'medium', 'low'] as const;
 export const SEVERITIES = ['critical', 'high', 'medium', 'low'] as const;
